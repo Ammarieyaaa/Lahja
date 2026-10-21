@@ -12,7 +12,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from lahja.db import Case, Dataset, HumanLabel, Judgment, Response
+import numpy as np
+
 from lahja.stats import Confusion, KappaResult, cohen_kappa
+from lahja.stats.bootstrap import Interval, bootstrap_ci
 
 
 class Trust(str, Enum):
@@ -27,6 +30,7 @@ class TrustPolicy:
     min_labels: int = 20
     trusted_kappa: float = 0.6
     caution_kappa: float = 0.4
+    trusted_ci_low: float = 0.4  # TRUSTED also needs the 95% CI on kappa to stay above this
     missed_failure_warning: float = 0.3
 
 
@@ -44,6 +48,7 @@ class GroupCalibration:
     n: int
     kappa: KappaResult
     confusion: Confusion
+    kappa_ci: Interval | None = None
     trust: Trust = Trust.INSUFFICIENT
     notes: list[str] = field(default_factory=list)
 
@@ -74,12 +79,15 @@ class Calibration:
         return group.trust if group else Trust.INSUFFICIENT
 
 
-def assess(group: str, human: list[bool], judge: list[bool], policy: TrustPolicy) -> GroupCalibration:
+def assess(group: str, human: list[bool], judge: list[bool], policy: TrustPolicy, seed: int = 0) -> GroupCalibration:
     n = len(human)
     if n == 0:
         empty = KappaResult(kappa=math.nan, observed=math.nan, expected=math.nan, n=0)
-        return GroupCalibration(group, 0, empty, Confusion(0, 0, 0, 0), Trust.INSUFFICIENT, ["no labels yet"])
+        return GroupCalibration(group, 0, empty, Confusion(0, 0, 0, 0), notes=["no labels yet"])
     result = GroupCalibration(group, n, cohen_kappa(human, judge), Confusion.of(human, judge))
+    if n >= 2:
+        h, j = np.array(human), np.array(judge)
+        result.kappa_ci = bootstrap_ci(lambda idx: cohen_kappa(h[idx], j[idx]).kappa, n, seed=seed)
     result.trust = _classify(result, policy)
     result.notes = _notes(result, policy)
     return result
@@ -91,9 +99,13 @@ def _classify(g: GroupCalibration, policy: TrustPolicy) -> Trust:
         return Trust.INSUFFICIENT
     if k < policy.caution_kappa:
         return Trust.UNTRUSTED
-    if k < policy.trusted_kappa:
+    if k < policy.trusted_kappa or not _ci_clears(g, policy):
         return Trust.CAUTION
     return Trust.TRUSTED
+
+
+def _ci_clears(g: GroupCalibration, policy: TrustPolicy) -> bool:
+    return g.kappa_ci is not None and not math.isnan(g.kappa_ci.low) and g.kappa_ci.low >= policy.trusted_ci_low
 
 
 def _notes(g: GroupCalibration, policy: TrustPolicy) -> list[str]:
@@ -108,6 +120,12 @@ def _notes(g: GroupCalibration, policy: TrustPolicy) -> list[str]:
             f"high raw agreement ({g.kappa.observed:.0%}) but low kappa: your pass rate is skewed "
             f"({g.human_pass_rate:.0%}). Kappa paradox, see docs/03"
         )
+    if not math.isnan(k) and k >= policy.trusted_kappa and not _ci_clears(g, policy):
+        low = g.kappa_ci.low if g.kappa_ci else math.nan
+        notes.append(
+            f"kappa {k:.2f} looks good, but its 95% CI reaches down to {low:.2f} "
+            f"(< {policy.trusted_ci_low}); label more answers to narrow it (docs/04 step 8)"
+        )
     if g.confusion.human_failures and g.missed_failure_rate > policy.missed_failure_warning:
         notes.append(
             f"judge passed {g.confusion.human_fail_judge_pass} of {g.confusion.human_failures} answers you failed: "
@@ -116,13 +134,15 @@ def _notes(g: GroupCalibration, policy: TrustPolicy) -> list[str]:
     return notes
 
 
-def calibrate(pairs: list[LabelPair], languages: Iterable[str], policy: TrustPolicy = TrustPolicy()) -> Calibration:
+def calibrate(
+    pairs: list[LabelPair], languages: Iterable[str], policy: TrustPolicy = TrustPolicy(), seed: int = 0
+) -> Calibration:
     """`languages`: every language in the dataset, so unlabeled ones show up as INSUFFICIENT, not missing."""
     by_lang: dict[str, list[LabelPair]] = defaultdict(list)
     for p in pairs:
         by_lang[p.language].append(p)
     by_language = {
-        lang: assess(lang, [p.human for p in by_lang[lang]], [p.judge for p in by_lang[lang]], policy)
+        lang: assess(lang, [p.human for p in by_lang[lang]], [p.judge for p in by_lang[lang]], policy, seed)
         for lang in sorted(set(languages) | by_lang.keys())
     }
     by_script: dict[str, GroupCalibration] = {}
@@ -132,7 +152,7 @@ def calibrate(pairs: list[LabelPair], languages: Iterable[str], policy: TrustPol
             for script in scripts:
                 sub = [p for p in group if p.script == script]
                 name = f"{lang}/{script}"
-                by_script[name] = assess(name, [p.human for p in sub], [p.judge for p in sub], policy)
+                by_script[name] = assess(name, [p.human for p in sub], [p.judge for p in sub], policy, seed)
     return Calibration(by_language, by_script)
 
 
@@ -155,7 +175,12 @@ def load_label_pairs(session: Session, dataset: Dataset, rubric: str, judge_mode
 
 
 def calibrate_dataset(
-    session: Session, dataset: Dataset, rubric: str, judge_model: str, policy: TrustPolicy = TrustPolicy()
+    session: Session,
+    dataset: Dataset,
+    rubric: str,
+    judge_model: str,
+    policy: TrustPolicy = TrustPolicy(),
+    seed: int = 0,
 ) -> Calibration:
     pairs = load_label_pairs(session, dataset, rubric, judge_model)
-    return calibrate(pairs, {c.language for c in dataset.cases}, policy)
+    return calibrate(pairs, {c.language for c in dataset.cases}, policy, seed)

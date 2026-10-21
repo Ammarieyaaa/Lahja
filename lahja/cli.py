@@ -165,10 +165,11 @@ def _fmt(x: float, spec: str = ".2f") -> str:
 
 
 def _print_calibration(groups: dict[str, GroupCalibration]) -> None:
-    typer.echo(f"{'group':<10}{'labels':>7}{'kappa':>8}{'agree':>8}{'you pass':>10}{'missed':>8}  trust")
+    typer.echo(f"{'group':<10}{'labels':>7}{'kappa':>8}{'95% CI':>15}{'agree':>8}{'you pass':>10}{'missed':>8}  trust")
     for g in groups.values():
+        ci = f"[{_fmt(g.kappa_ci.low)}, {_fmt(g.kappa_ci.high)}]" if g.kappa_ci else "-"
         typer.echo(
-            f"{g.group:<10}{g.n:>7}{_fmt(g.kappa.kappa):>8}{_fmt(g.kappa.observed, '.0%'):>8}"
+            f"{g.group:<10}{g.n:>7}{_fmt(g.kappa.kappa):>8}{ci:>15}{_fmt(g.kappa.observed, '.0%'):>8}"
             f"{_fmt(g.human_pass_rate, '.0%'):>10}{_fmt(g.missed_failure_rate, '.0%'):>8}  {g.trust.value}"
         )
         for note in g.notes:
@@ -186,7 +187,7 @@ def calibrate(
             ds = get_dataset(session, dataset)
         except DatasetError as e:
             _fail(str(e))
-        result = calibrate_dataset(session, ds, rubric, settings.judge.key)
+        result = calibrate_dataset(session, ds, rubric, settings.judge.key, seed=settings.seed)
         typer.echo(f"judge {settings.judge.key} / rubric {rubric}")
         _print_calibration(result.by_language)
         if result.by_script:

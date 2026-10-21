@@ -1,3 +1,5 @@
+import pytest
+
 from lahja.calibrate import LabelPair, Trust, TrustPolicy, calibrate, calibrate_dataset
 from lahja.db import HumanLabel, Judgment, Response
 from lahja.labeling import label_interactively, pick_for_labeling
@@ -48,9 +50,15 @@ def test_script_breakdown_only_when_language_uses_two_scripts():
     assert result.by_script["ary/latn"].kappa.kappa < result.by_script["ary/arab"].kappa.kappa
 
 
-def test_custom_policy():
-    result = calibrate(pairs("fr", (11, 2, 2, 5)), ["fr"], TrustPolicy(min_labels=10, trusted_kappa=0.5))
-    assert result.trust("fr") is Trust.TRUSTED
+def test_good_kappa_with_wide_ci_is_only_caution():
+    # kappa 0.56 clears a lowered threshold, but with 20 labels its CI is about [0.13, 0.89].
+    lenient = TrustPolicy(trusted_kappa=0.5)
+    g = calibrate(pairs("fr", (11, 2, 2, 5)), ["fr"], lenient).by_language["fr"]
+    assert g.trust is Trust.CAUTION
+    assert g.kappa_ci.low == pytest.approx(0.13, abs=0.01)
+    assert any("label more answers" in n for n in g.notes)
+    ignore_ci = TrustPolicy(trusted_kappa=0.5, trusted_ci_low=-1)
+    assert calibrate(pairs("fr", (11, 2, 2, 5)), ["fr"], ignore_ci).trust("fr") is Trust.TRUSTED
 
 
 def test_labeling_is_blind_and_feeds_calibration(session, dataset):
