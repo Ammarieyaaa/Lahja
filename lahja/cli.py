@@ -10,11 +10,13 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from lahja import __version__
+from lahja.calibrate import GroupCalibration, calibrate_dataset
 from lahja.config import ConfigError, Settings, load_settings
 from lahja.dataset import DatasetError, coverage, get_dataset, import_dataset, read_cases
 from lahja.db import Case, Dataset, make_session_factory
 from lahja.judge import LLMJudge, load_rubric
 from lahja.judging import judge_run
+from lahja.labeling import label_interactively, pick_for_labeling
 from lahja.runner import get_or_create_run, run_model
 from lahja.targets import make_client
 
@@ -135,3 +137,58 @@ def judge(
         typer.echo(f"judging {run.model} with {grader.name} / {rubric}")
         summary = judge_run(session, run, grader, progress=typer.echo)
         typer.echo(f"done: {summary.created} new, {summary.cached} cached, {summary.failed} failed")
+
+
+@app.command()
+def label(
+    dataset: str = typer.Option(..., help="Dataset name."),
+    rubric: str = typer.Option("correctness", help="Rubric you are labeling against: read it first."),
+    per_language: int = typer.Option(10, help="How many answers per language to label this session."),
+) -> None:
+    """Label answers yourself, blind (no model name, no judge verdict). Ground truth for kappa."""
+    with _db() as (settings, session):
+        try:
+            ds = get_dataset(session, dataset)
+            load_rubric(rubric)
+        except (DatasetError, ValueError) as e:
+            _fail(str(e))
+        items = pick_for_labeling(session, ds, rubric, per_language, seed=settings.seed)
+        if not items:
+            _fail("nothing to label: run the models first, or everything is already labeled")
+        typer.echo(f"{len(items)} answers to label against lahja/rubrics/{rubric}.md")
+        summary = label_interactively(session, items, rubric, ask=lambda q: typer.prompt(q), show=typer.echo)
+        typer.echo(f"saved {summary.labeled} labels ({summary.skipped} skipped)")
+
+
+def _fmt(x: float, spec: str = ".2f") -> str:
+    return "  -  " if x != x else format(x, spec)  # x != x is True only for nan
+
+
+def _print_calibration(groups: dict[str, GroupCalibration]) -> None:
+    typer.echo(f"{'group':<10}{'labels':>7}{'kappa':>8}{'agree':>8}{'you pass':>10}{'missed':>8}  trust")
+    for g in groups.values():
+        typer.echo(
+            f"{g.group:<10}{g.n:>7}{_fmt(g.kappa.kappa):>8}{_fmt(g.kappa.observed, '.0%'):>8}"
+            f"{_fmt(g.human_pass_rate, '.0%'):>10}{_fmt(g.missed_failure_rate, '.0%'):>8}  {g.trust.value}"
+        )
+        for note in g.notes:
+            typer.echo(f"{'':<10}- {note}")
+
+
+@app.command()
+def calibrate(
+    dataset: str = typer.Option(..., help="Dataset name."),
+    rubric: str = typer.Option("correctness", help="Rubric name."),
+) -> None:
+    """How far to trust the judge, per language: kappa between your labels and the judge."""
+    with _db() as (settings, session):
+        try:
+            ds = get_dataset(session, dataset)
+        except DatasetError as e:
+            _fail(str(e))
+        result = calibrate_dataset(session, ds, rubric, settings.judge.key)
+        typer.echo(f"judge {settings.judge.key} / rubric {rubric}")
+        _print_calibration(result.by_language)
+        if result.by_script:
+            typer.echo("\nby script:")
+            _print_calibration(result.by_script)
