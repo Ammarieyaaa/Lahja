@@ -8,6 +8,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # ISO 639: fr = French, ar = Modern Standard Arabic, ary = Moroccan Darija.
 Language = Literal["fr", "ar", "ary"]
+# Languages that may be mixed INTO an input. Customers also mix in English ("cash on delivery"),
+# even though English is not a language Lahja grades.
+MixedLanguage = Literal["fr", "ar", "ary", "en"]
 # ISO 15924: latn = Latin script (French, or Darija written as Arabizi), arab = Arabic script.
 Script = Literal["latn", "arab"]
 
@@ -21,7 +24,7 @@ class EvalCase(BaseModel):
     id: str = Field(min_length=1)
     language: Language  # the customer's main language
     script: Script
-    code_switch: list[Language] = []  # other languages mixed into the input, e.g. ["fr"]
+    code_switch: list[MixedLanguage] = []  # other languages mixed into the input, e.g. ["fr"]
     intent: str = Field(min_length=1)  # what the customer wants, e.g. "refund_duplicate_charge"
     input: str = Field(min_length=1)  # the customer's message, exactly as they'd type it
     reference: str = Field(min_length=1)  # the key facts a correct answer must contain

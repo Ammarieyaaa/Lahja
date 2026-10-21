@@ -34,6 +34,12 @@ def test_darija_allows_both_scripts():
     make_case("b", "ary", "latn")
 
 
+def test_english_can_be_mixed_in_but_not_graded():
+    make_case("a", "ary", "latn", code_switch=["fr", "en"])
+    with pytest.raises(ValidationError):
+        make_case("b", "en", "latn")
+
+
 def test_read_cases_reports_every_error_with_line_numbers(tmp_path):
     good = make_case("fr-1").model_dump_json()
     path = tmp_path / "cases.jsonl"
