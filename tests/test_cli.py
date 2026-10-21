@@ -11,7 +11,7 @@ def temp_db(tmp_path, monkeypatch):
     monkeypatch.setenv("LAHJA_DB_URL", f"sqlite:///{tmp_path / 'cli.db'}")
 
 
-@pytest.mark.parametrize("command", [[], ["dataset"], ["run"], ["judge"], ["label"], ["calibrate"]])
+@pytest.mark.parametrize("command", [[], ["dataset"], ["run"], ["judge"], ["label"], ["calibrate"], ["compare"]])
 def test_help_renders(command):
     result = runner.invoke(app, [*command, "--help"])
     assert result.exit_code == 0, result.output

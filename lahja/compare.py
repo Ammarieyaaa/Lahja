@@ -81,7 +81,12 @@ def _group(
         diff = paired_diff_ci(base, cand, confidence=confidence, seed=seed)
         statistical = decide(diff, margin)
         if n < SMALL_N:
-            notes.append(f"only {n} cases: bootstrap intervals run too narrow below ~{SMALL_N}; treat as indicative")
+            # Percentile bootstrap intervals run too narrow on small samples: don't let one decide.
+            notes.append(
+                f"only {n} cases (< {SMALL_N}): too few for a reliable interval; "
+                f"the interval alone would say {statistical.value}"
+            )
+            statistical = Outcome.INCONCLUSIVE
     outcome = statistical
     if trust in (Trust.UNTRUSTED, Trust.INSUFFICIENT):
         outcome = Outcome.JUDGE_UNTRUSTED

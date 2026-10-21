@@ -106,7 +106,7 @@ With 20 labels, "κ = 0.56" is consistent with anything from "barely better than
 
 ## Known limitations (say these before an interviewer does)
 
-- **Small n:** the percentile bootstrap undercovers when there are fewer than about 20 cases: its intervals come out too narrow. Lahja adds a note to groups that small.
+- **Small n:** the percentile bootstrap undercovers when there are fewer than about 20 cases: its intervals come out too narrow. Lahja therefore never gives PASS or FAIL to a group with fewer than 20 cases. It reports INCONCLUSIVE and notes what the interval alone would have said.
 - **Multiple comparisons:** a 95% CI per language means three languages give roughly a 14% chance (1 − 0.95³) that at least one of them is "confidently" wrong by luck. A stricter version would use a Bonferroni-corrected confidence of 1 − 0.05/k per language. It's not on by default. Know the trade-off.
 - **The judge's errors aren't in this CI.** The bootstrap covers sampling noise in *cases*. A biased judge shifts both pass rates, and the per-language trust gate is what guards against that.
 

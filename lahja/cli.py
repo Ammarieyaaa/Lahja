@@ -2,6 +2,7 @@
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 
@@ -11,13 +12,15 @@ from sqlalchemy.orm import Session
 
 from lahja import __version__
 from lahja.calibrate import GroupCalibration, calibrate_dataset
+from lahja.compare import Outcome, compare_runs
 from lahja.config import ConfigError, Settings, load_settings
 from lahja.dataset import DatasetError, coverage, get_dataset, import_dataset, read_cases
-from lahja.db import Case, Dataset, make_session_factory
+from lahja.db import Case, Dataset, Run, make_session_factory
 from lahja.judge import LLMJudge, load_rubric
 from lahja.judging import judge_run
 from lahja.labeling import label_interactively, pick_for_labeling
-from lahja.runner import get_or_create_run, run_model
+from lahja.report import ReportMeta, write_reports
+from lahja.runner import find_run, run_model
 from lahja.targets import make_client
 
 app = typer.Typer(no_args_is_help=True, help="Lahja: regression testing for LLM features, per language.")
@@ -40,6 +43,13 @@ def _db() -> Iterator[tuple[Settings, Session]]:
 def _fail(message: str) -> None:
     typer.secho(message, fg=typer.colors.RED, err=True)
     raise typer.Exit(1)
+
+
+def _require_run(session: Session, ds: Dataset, settings: Settings, role: Target) -> Run:
+    run = find_run(session, ds, settings.spec(role.value).key)
+    if run is None or not run.responses:
+        _fail(f"no answers from {settings.spec(role.value).key} yet: run `lahja run --dataset {ds.name} --role {role.value}`")
+    return run
 
 
 @app.command()
@@ -131,9 +141,7 @@ def judge(
             grader = LLMJudge(make_client(settings.judge, settings), load_rubric(rubric))
         except (DatasetError, ConfigError, ValueError) as e:
             _fail(str(e))
-        run = get_or_create_run(session, ds, settings.spec(role.value).key)
-        if not run.responses:
-            _fail(f"no answers yet: run `lahja run --dataset {dataset} --role {role.value}` first")
+        run = _require_run(session, ds, settings, role)
         typer.echo(f"judging {run.model} with {grader.name} / {rubric}")
         summary = judge_run(session, run, grader, progress=typer.echo)
         typer.echo(f"done: {summary.created} new, {summary.cached} cached, {summary.failed} failed")
@@ -193,3 +201,46 @@ def calibrate(
         if result.by_script:
             typer.echo("\nby script:")
             _print_calibration(result.by_script)
+
+
+# Exit codes, so a script or CI step can branch on the verdict. 1 is reserved for errors.
+EXIT_CODES = {Outcome.PASS: 0, Outcome.FAIL: 2, Outcome.INCONCLUSIVE: 3}
+
+
+@app.command()
+def compare(
+    dataset: str = typer.Option(..., help="Dataset name."),
+    rubric: str = typer.Option("correctness", help="Rubric name."),
+    margin: float | None = typer.Option(None, help="Tolerated drop as a fraction, e.g. 0.03 (default: LAHJA_MARGIN)."),
+    out: Path = typer.Option(Path("reports"), help="Directory for the JSON and Markdown reports."),
+) -> None:
+    """Verdict: did quality drop, per language, and is the drop real? Exit 0 PASS, 2 FAIL, 3 INCONCLUSIVE."""
+    with _db() as (settings, session):
+        try:
+            ds = get_dataset(session, dataset)
+        except DatasetError as e:
+            _fail(str(e))
+        baseline = _require_run(session, ds, settings, Target.current)
+        candidate = _require_run(session, ds, settings, Target.candidate)
+        calibration = calibrate_dataset(session, ds, rubric, settings.judge.key, seed=settings.seed)
+        comparison = compare_runs(
+            session, ds, baseline, candidate,
+            rubric=rubric, judge_model=settings.judge.key, trust=calibration.trust,
+            margin=settings.margin if margin is None else margin, seed=settings.seed,
+        )
+        meta = ReportMeta(
+            dataset=dataset, rubric=rubric, judge_model=settings.judge.key,
+            baseline_model=baseline.model, candidate_model=candidate.model,
+            generated_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        )
+        json_path, md_path = write_reports(meta, comparison, calibration, out)
+
+    for g in comparison.by_language:
+        ci = f"[{g.diff.low * 100:+.1f}, {g.diff.high * 100:+.1f}]" if g.diff else "-"
+        typer.echo(f"  {g.group:<5} {g.n_cases:>4} cases  delta CI {ci:<16} {g.outcome.value}")
+    color = {Outcome.PASS: typer.colors.GREEN, Outcome.FAIL: typer.colors.RED}.get(comparison.overall, typer.colors.YELLOW)
+    typer.secho(f"VERDICT: {comparison.overall.value}", fg=color, bold=True)
+    for reason in comparison.reasons:
+        typer.echo(f"  - {reason}")
+    typer.echo(f"reports: {md_path}  {json_path}")
+    raise typer.Exit(EXIT_CODES[comparison.overall])

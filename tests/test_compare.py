@@ -68,7 +68,8 @@ def test_caution_keeps_the_verdict_but_warns():
 def test_small_groups_are_flagged_and_tiny_ones_inconclusive():
     result = compare_cases(lang_cases("fr", 10, 8, 8) + lang_cases("ar", 1, 1, 1), trusted, margin=MARGIN)
     by = {g.group: g for g in result.by_language}
-    assert any("only 10 cases" in n for n in by["fr"].notes)
+    assert by["fr"].outcome is Outcome.INCONCLUSIVE  # identical scores, but 10 cases can't support a PASS
+    assert any("only 10 cases" in n and "would say PASS" in n for n in by["fr"].notes)
     assert by["ar"].diff is None and by["ar"].outcome is Outcome.INCONCLUSIVE
 
 

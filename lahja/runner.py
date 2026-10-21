@@ -30,8 +30,12 @@ def build_messages(system_prompt: str, user_input: str) -> list[Message]:
     return messages + [{"role": "user", "content": user_input}]
 
 
+def find_run(session: Session, dataset: Dataset, model: str) -> Run | None:
+    return session.scalar(select(Run).where(Run.dataset_id == dataset.id, Run.model == model))
+
+
 def get_or_create_run(session: Session, dataset: Dataset, model: str) -> Run:
-    run = session.scalar(select(Run).where(Run.dataset_id == dataset.id, Run.model == model))
+    run = find_run(session, dataset, model)
     if run is None:
         run = Run(dataset=dataset, model=model)
         session.add(run)
