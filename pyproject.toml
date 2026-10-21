@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lahja"
+version = "0.1.0"
+description = "Regression testing for LLM features, with per-language judge trust (French, Arabic, Darija)."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "sqlalchemy>=2.0",
+    "pydantic>=2.6",
+    "typer>=0.12",
+    "httpx>=0.27",
+    "numpy>=1.26",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+# scikit-learn is a TEST-ONLY oracle: we check our hand-written kappa against it.
+dev = ["pytest>=8", "scikit-learn>=1.4"]
+
+[project.scripts]
+lahja = "lahja.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["lahja*"]
+
+[tool.setuptools.package-data]
+lahja = ["rubrics/*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: makes real LLM calls (needs Ollama running and/or GROQ_API_KEY)"]
+# Unit tests only by default. Run real calls with: pytest -m integration
+addopts = "-m 'not integration'"
