@@ -42,6 +42,20 @@ These two cases are in [data/cases.example.jsonl](../data/cases.example.jsonl):
 - **`fr-001`** (duplicate charge). The input is informal ("Comment je récupère mon argent ?"), as people really write. The reference lists exactly four checkable facts: full refund, original card, 5 business days, order number only. The notes record the failure modes we expect (asking for bank statements, a made-up delay, a bare "contact support").
 - **`ar-001`** (delivery status, MSA). It tests *applying* the policy: Oujda → 4–8 days → 6 days is not late. It's a discriminating case.
 
+## A real ambiguity, caught by the first run
+
+Version 1 of `fr-001`'s reference said the refund happens *"dès que le client envoie le numéro de commande au support"* (once the customer sends the order number to support). But the customer had **already given** the number in their message. On the first real run, gpt-oss answered three times:
+
+- Trial 0: "we're processing it now". The Qwen judge gave **FAIL**: *"fails to include the specific action required: the customer must send the order number"*.
+- Trials 1 and 2 repeated the order-number condition back. Both **PASS**.
+
+The judge applied the reference literally. **The case was ambiguous, not the judge wrong.** Two careful humans could disagree on trial 0 too, which breaks property 2. The fix: the reference now says the customer has already given the number and needs to provide nothing else.
+
+Lessons for when you curate:
+- **Read the judge's `reason` whenever a verdict surprises you.** A surprise usually points to the reference or the rubric before it points to the judge.
+- **Fix the case, not the grade.** Then import again under a new name (`examples-v2`). Old runs stay tied to the old wording.
+- **Write references against the actual input.** A policy fact is only part of the answer if the customer hasn't already covered it.
+
 ## Darija: your part
 
 I'm not writing Darija content. You know how it's actually written and I would produce translationese. Here is the format with each field annotated:

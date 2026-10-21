@@ -61,10 +61,11 @@ def load_settings(*, use_dotenv: bool = True) -> Settings:
         db_url=os.getenv("LAHJA_DB_URL", "sqlite:///lahja.db"),
         groq_api_key=os.getenv("GROQ_API_KEY") or None,
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1"),
-        # Groq defaults are placeholders until confirmed against the console's model list.
-        current=_spec("LAHJA_CURRENT", "groq", "llama-3.3-70b-versatile"),
+        # Three different model families, so the judge can't favour either side (self-preference bias):
+        # current = OpenAI (gpt-oss), candidate = Meta (Llama), judge = Alibaba (Qwen).
+        current=_spec("LAHJA_CURRENT", "groq", "openai/gpt-oss-120b"),
         candidate=_spec("LAHJA_CANDIDATE", "ollama", "llama3.2:3b"),
-        judge=_spec("LAHJA_JUDGE", "groq", "openai/gpt-oss-120b"),
+        judge=_spec("LAHJA_JUDGE", "groq", "qwen/qwen3.8-27b"),
         trials=int(os.getenv("LAHJA_TRIALS", "3")),
         temperature=float(os.getenv("LAHJA_TEMPERATURE", "0.7")),
         margin=float(os.getenv("LAHJA_MARGIN", "0.03")),

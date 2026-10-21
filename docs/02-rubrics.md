@@ -14,7 +14,7 @@ You've already built an LLM judge, so this doc covers only what changes when the
 ## How the judge is kept honest
 
 - **It's blind.** `Judge.grade(question, reference, answer)` receives no model name and no language label. It can't go easy on "the big model".
-- **It's a different family from "current" (self-preference bias).** "Current" is a Llama model, so the judge defaults to `openai/gpt-oss-120b`. It's a placeholder until you confirm your console list. 🎯
+- **It's a different family from both models it grades (self-preference bias).** Current is `openai/gpt-oss-120b` (OpenAI), candidate is `llama3.2:3b` (Meta), and the judge is `qwen/qwen3.8-27b` (Alibaba), so it has no "own style" on either side. Qwen is also the stronger Arabic model of the families available on this Groq account. Whether it reads *Darija* well is an open question, and calibration answers it. 🎯
 - **Temperature is 0.** We are measuring the target model's randomness, not the grader's.
 - **Cache key is (response, rubric, judge model).** Changing the rubric text without renaming it would reuse stale grades. **If you change a rubric's meaning, give it a new name** (e.g. `correctness_v2`).
 

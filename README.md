@@ -52,11 +52,11 @@ Both statistics, κ and the bootstrap, are **hand-written** (about 40 lines each
   code_switch, intent,                                            runs · responses
   input, reference)                                               judgments · human_labels
                                                                     │
- current model (Groq) ───┐                                          │
+ current (Groq gpt-oss) ─┐                                          │
                          ├──► runner: case × trial ──► responses ───┤  cached per (run, case, trial)
  candidate (Ollama 3B) ──┘                                          │
                                                                     │
- judge (Groq, non-Llama) ──► judging: blind, rubric ──► judgments ──┤  cached per (response, rubric, judge)
+ judge (Groq, Qwen) ───────► judging: blind, rubric ──► judgments ──┤  cached per (response, rubric, judge)
  you ──────────────────────► labeling: blind ─────────► labels ─────┤
                                                                     │
             calibrate: κ + bootstrap CI per language ──► trust gate ┤
@@ -76,7 +76,7 @@ Both statistics, κ and the bootstrap, are **hand-written** (about 40 lines each
 | [lahja/report.py](lahja/report.py) | JSON and Markdown reports |
 
 **Design choices worth defending:**
-- The judge is a **different model family** from the current model. LLM judges prefer outputs that resemble their own (self-preference bias), and that bias would tilt a current-vs-candidate comparison.
+- The judge is a **different model family from both models it grades** (OpenAI vs Meta, judged by Alibaba Qwen). LLM judges prefer outputs that resemble their own (self-preference bias), and that bias would tilt a current-vs-candidate comparison.
 - The judge is **blind** to which model wrote the answer and runs at temperature 0.
 - Verdicts are **binary**, with **one question per rubric** (`correctness` ignores language; `language_fidelity` grades only language). Kappa per rubric is then interpretable.
 - Datasets are **immutable**: edit the cases, import as `-v2`. Old runs stay tied to the exact cases they were graded on.
@@ -129,7 +129,7 @@ pytest -m integration     # real calls: Ollama end-to-end; Groq tests skip witho
 ## Status
 
 - [x] Pipeline: dataset → run → judge → label → calibrate → compare → report
-- [ ] Groq model IDs confirmed against the console (defaults in `.env.example` are placeholders)
+- [x] Model roles confirmed against this Groq account: current `openai/gpt-oss-120b`, candidate Ollama `llama3.2:3b`, judge `qwen/qwen3.8-27b`
 - [ ] Curated dataset, including Darija cases in Arabic script and Arabizi
 - [ ] `language_fidelity` rubric
 - [ ] Labels: at least 20 per language per rubric
