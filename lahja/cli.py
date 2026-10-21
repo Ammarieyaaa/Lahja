@@ -2,6 +2,7 @@
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from enum import Enum
 from pathlib import Path
 
 import typer
@@ -9,13 +10,20 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from lahja import __version__
-from lahja.config import Settings, load_settings
-from lahja.dataset import DatasetError, coverage, import_dataset, read_cases
+from lahja.config import ConfigError, Settings, load_settings
+from lahja.dataset import DatasetError, coverage, get_dataset, import_dataset, read_cases
 from lahja.db import Case, Dataset, make_session_factory
+from lahja.runner import run_model
+from lahja.targets import make_client
 
 app = typer.Typer(no_args_is_help=True, help="Lahja: regression testing for LLM features, per language.")
 dataset_app = typer.Typer(no_args_is_help=True, help="Validate, import and list eval datasets.")
 app.add_typer(dataset_app, name="dataset")
+
+
+class Target(str, Enum):
+    current = "current"
+    candidate = "candidate"
 
 
 @contextmanager
@@ -83,3 +91,24 @@ def dataset_list() -> None:
         ).all()
         for name, n in rows:
             typer.echo(f"{name}  ({n} cases)")
+
+
+@app.command()
+def run(
+    dataset: str = typer.Option(..., help="Dataset name."),
+    role: Target = typer.Option(..., help="Which model to run: current or candidate."),
+    trials: int | None = typer.Option(None, help="Trials per case (default: LAHJA_TRIALS)."),
+) -> None:
+    """Generate answers for every case, N trials each. Safe to re-run: only missing answers are generated."""
+    with _db() as (settings, session):
+        try:
+            ds = get_dataset(session, dataset)
+            client = make_client(settings.spec(role.value), settings)
+        except (DatasetError, ConfigError) as e:
+            _fail(str(e))
+        n = trials or settings.trials
+        typer.echo(f"running {client.name} on {dataset!r}: {len(ds.cases)} cases x {n} trials")
+        summary = run_model(session, ds, client, trials=n, temperature=settings.temperature, progress=typer.echo)
+        typer.echo(f"done: {summary.created} new, {summary.cached} cached, {summary.failed} failed")
+        if summary.failed:
+            typer.echo("re-run the same command to retry the failed ones")
