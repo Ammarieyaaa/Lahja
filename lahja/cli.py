@@ -13,7 +13,9 @@ from lahja import __version__
 from lahja.config import ConfigError, Settings, load_settings
 from lahja.dataset import DatasetError, coverage, get_dataset, import_dataset, read_cases
 from lahja.db import Case, Dataset, make_session_factory
-from lahja.runner import run_model
+from lahja.judge import LLMJudge, load_rubric
+from lahja.judging import judge_run
+from lahja.runner import get_or_create_run, run_model
 from lahja.targets import make_client
 
 app = typer.Typer(no_args_is_help=True, help="Lahja: regression testing for LLM features, per language.")
@@ -112,3 +114,24 @@ def run(
         typer.echo(f"done: {summary.created} new, {summary.cached} cached, {summary.failed} failed")
         if summary.failed:
             typer.echo("re-run the same command to retry the failed ones")
+
+
+@app.command()
+def judge(
+    dataset: str = typer.Option(..., help="Dataset name."),
+    role: Target = typer.Option(..., help="Whose answers to grade: current or candidate."),
+    rubric: str = typer.Option("correctness", help="Rubric name (a file in lahja/rubrics/)."),
+) -> None:
+    """Grade every answer of a run with the judge model. Cached: re-running only grades new answers."""
+    with _db() as (settings, session):
+        try:
+            ds = get_dataset(session, dataset)
+            grader = LLMJudge(make_client(settings.judge, settings), load_rubric(rubric))
+        except (DatasetError, ConfigError, ValueError) as e:
+            _fail(str(e))
+        run = get_or_create_run(session, ds, settings.spec(role.value).key)
+        if not run.responses:
+            _fail(f"no answers yet: run `lahja run --dataset {dataset} --role {role.value}` first")
+        typer.echo(f"judging {run.model} with {grader.name} / {rubric}")
+        summary = judge_run(session, run, grader, progress=typer.echo)
+        typer.echo(f"done: {summary.created} new, {summary.cached} cached, {summary.failed} failed")
