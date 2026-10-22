@@ -1,139 +1,191 @@
-# Lahja
+# <img src="docs/icons/languages.svg" width="36" align="top" alt=""> Lahja
 
-**Regression testing for LLM features, with first-class support for French, Arabic and Tunisian Derja, including code-switching.**
+**Regression testing for multilingual LLM features.** Before you swap the model behind your chatbot for a cheaper one, Lahja runs both on the same test set, grades every answer with an LLM judge it has *checked against human labels*, and tells you **per language** whether quality dropped, and whether that drop is **real or noise**.
 
-*Lahja* (لهجة) means "dialect".
+First-class support for **French, Modern Standard Arabic and Tunisian Derja**, in Arabic script *and* Arabizi, code-switching included. *Lahja* (لهجة) means "dialect".
 
-A team has an LLM feature, say a support bot, and wants to switch to a cheaper model without quietly making answers worse. Lahja runs a test dataset through **both** models and grades the answers with an LLM judge that has been **checked against your own labels**. It then tells you, **per language**, whether quality dropped, and whether the drop is **real or noise**:
-
-```
-  ar      62 cases  delta CI [-4.1, +2.3]     PASS
-  aeb     58 cases  delta CI [-31.0, -12.1]   JUDGE_UNTRUSTED
-  fr      70 cases  delta CI [-2.9, +3.6]     PASS
-VERDICT: INCONCLUSIVE
-  - aeb: judge not trusted (UNTRUSTED); label more answers or fix the rubric
-  - note: the pooled all-language number alone would have said PASS
-```
-
-*(illustrative output)*
-
-## The hard problem, and how Lahja solves it
-
-There are two ways a regression test for multilingual LLM features goes wrong without anyone noticing.
-
-### 1. The grader is reliable in one language and not in another
-
-An LLM judge can grade French well and Tunisian Derja badly. Derja is under-represented in training data, comes in two scripts (Arabic and Arabizi, with digits for sounds like `3` and `7`), and mixes in French mid-sentence. If you validate the judge on all your labels pooled together, the majority language dominates. In [docs/03](docs/03-kappa.md) a pooled κ of 0.86 hides a Tunisian κ of −0.05.
-
-**Solution: a per-language trust gate.**
-- You label a sample of answers **blind**: you see no model name and no judge verdict.
-- `lahja calibrate` computes **Cohen's kappa separately for each language** (and each script), with a **bootstrap CI on κ**.
-- It reports raw agreement, your pass rate and the 2×2 table next to κ, so the **kappa paradox** is visible and not misread.
-- It reports the judge's **missed-failure rate**, meaning how often it passes answers you failed. That's the error that hides regressions.
-- A language whose judge isn't trusted gets **JUDGE_UNTRUSTED** instead of PASS/FAIL. Lahja won't give a verdict its grader can't support.
-
-### 2. A small difference is mistaken for a real one, or the other way round
-
-A 2-point drop on 150 cases is very likely noise: the paired 95% CI is about [−7.4, +3.4] points ([docs/04](docs/04-bootstrap.md)). In the other direction, a 25-point Tunisian drop can shrink to about 4 points when pooled with plenty of French cases, and get waved through.
-
-**Solution: a paired bootstrap, per language, with a non-inferiority margin.**
-- Both models answer the same cases. Trials are averaged into one score per case, and **cases** (the independent unit) are resampled in pairs. Shared case difficulty cancels, so the CI is about half as wide as an unpaired one.
-- The question asked is *"is the candidate worse by more than the margin δ?"*, not *"is the difference zero?"*. The answer has three possible outcomes: **PASS** (CI above −δ), **FAIL** (CI below −δ) or **INCONCLUSIVE** (CI straddles −δ, so more data is needed).
-- **Overall FAIL if any trusted language FAILs. Overall PASS only if every language passes.** A regression in a minority language can't be averaged away.
-- Groups with fewer than 20 cases never get PASS or FAIL, because percentile bootstrap intervals are unreliable that small.
-
-Both statistics, κ and the bootstrap, are **hand-written** (about 40 lines each), derived on paper in the docs, and tested against those worked examples. scikit-learn appears only in tests, as an oracle for kappa.
-
-## Architecture
+![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)
+![Pydantic](https://img.shields.io/badge/Pydantic-E92063?logo=pydantic&logoColor=white)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?logo=sqlalchemy&logoColor=white)
+![Typer](https://img.shields.io/badge/Typer-CLI-000000)
+![NumPy](https://img.shields.io/badge/NumPy-013243?logo=numpy&logoColor=white)
+![pytest](https://img.shields.io/badge/pytest-0A9EDC?logo=pytest&logoColor=white)
+![Ollama](https://img.shields.io/badge/Ollama-llama3.2%3A3b-000000)
+![Groq](https://img.shields.io/badge/Groq-gpt--oss--120b%20%C2%B7%20qwen-F55036)
 
 ```
- data/cases.jsonl ──► dataset import ──────────────────────────► SQLite (SQLAlchemy 2.0)
- (language, script,                                               datasets · cases
-  code_switch, intent,                                            runs · responses
-  input, reference)                                               judgments · human_labels
-                                                                    │
- current (Groq gpt-oss) ─┐                                          │
-                         ├──► runner: case × trial ──► responses ───┤  cached per (run, case, trial)
- candidate (Ollama 3B) ──┘                                          │
-                                                                    │
- judge (Groq, Qwen) ───────► judging: blind, rubric ──► judgments ──┤  cached per (response, rubric, judge)
- you ──────────────────────► labeling: blind ─────────► labels ─────┤
-                                                                    │
-            calibrate: κ + bootstrap CI per language ──► trust gate ┤
-            compare: paired bootstrap per language + margin ────────┴──► PASS / FAIL / INCONCLUSIVE
-                                                                         reports/<dataset>-<rubric>.{md,json}
+lahja compare --dataset support-v1 --rubric correctness_v2
+  aeb    118 cases  delta CI [-41.5, -27.1]  FAIL
+  ar      59 cases  delta CI [ -9.2,  +3.4]  INCONCLUSIVE
+  fr      59 cases  delta CI [ -4.1,  +2.0]  JUDGE_UNTRUSTED
+VERDICT: FAIL
+```
+<sub>Illustrative output. The real numbers for this project are in the Results section below.</sub>
+
+---
+
+## <img src="docs/icons/message-square-warning.svg" width="24" align="top" alt=""> Why
+
+A cheaper model can look fine on an English benchmark and quietly fall apart in the languages your customers actually write. A pooled score hides it: a big drop in Tunisian Derja averages out against a stable French. And an LLM judge that grades French well may not understand Derja at all, so its "PASS" means nothing there.
+
+Lahja answers two questions *per language*: **can I trust the grader here?** and **is this drop bigger than chance?**
+
+## <img src="docs/icons/scan-search.svg" width="24" align="top" alt=""> See it catch a regression
+
+A real case from the test set. A customer writes in Tunisian Arabizi: *can I pay the courier in cash?*
+
+> **Question:** `najem n5alles el livreur cash ki yousel?`
+>
+> **Current model** (`gpt-oss-120b`):
+> ```text
+> Iyeh, tnajjem tkhalleṣ cash l‑livreur ki ywasel, w bch ykoun fee zeyda 5 TND ʿal cash‑on‑delivery.
+> El‑akher, tnajjem tdkhl b‑carte w ma tkounch fee zeyda.
+> ```
+> **Candidate** (`llama3.2:3b`):
+> ```text
+> nour el 5 TND ki yousel el livreur, el livreur hbuwek el jod 5 TND el shouk el cash.
+> ```
+> **Native-speaker label:** *"That's not Tunisian. I can't understand what it means."* → **FAIL**
+
+The same question in French gets a clean answer from both models. That gap is exactly what Lahja measures.
+
+## <img src="docs/icons/chart-column.svg" width="24" align="top" alt=""> Results
+
+The test set: an **Atlas Shop** support bot (a fictional Tunisian e-store) with a written policy, and **236 cases**, which are 59 scenarios × 4 language cells. Each model answers every case 3 times.
+
+| Language | Cases | Human labels | Judge trust (κ) | Verdict |
+|---|---:|---:|---|---|
+| French | 59 | 40 | <img src="docs/icons/circle-help.svg" width="16" align="top" alt=""> pending | <img src="docs/icons/circle-help.svg" width="16" align="top" alt=""> pending |
+| MSA | 59 | 43 | <img src="docs/icons/circle-help.svg" width="16" align="top" alt=""> pending | <img src="docs/icons/circle-help.svg" width="16" align="top" alt=""> pending |
+| Tunisian Derja: Arabic script | 59 | 25 | <img src="docs/icons/circle-help.svg" width="16" align="top" alt=""> pending | <img src="docs/icons/circle-help.svg" width="16" align="top" alt=""> pending |
+| Tunisian Derja: Arabizi | 59 | 24 | <img src="docs/icons/circle-help.svg" width="16" align="top" alt=""> pending | <img src="docs/icons/circle-help.svg" width="16" align="top" alt=""> pending |
+
+*Current: `gpt-oss-120b` (Groq). Candidate: `llama3.2:3b` (Ollama, CPU). Judge: `qwen3.8-27b` (Groq). Grading is rate-limited by the free tier and still in progress; this table will be filled in from `lahja compare` once it finishes.*
+
+## <img src="docs/icons/workflow.svg" width="24" align="top" alt=""> How it works
+
+```mermaid
+flowchart LR
+    D[Test set<br/>236 cases · 4 language cells] --> R[Runner<br/>each case × N trials]
+    R --> A[Current model<br/>gpt-oss-120b]
+    R --> B[Candidate<br/>llama3.2:3b]
+    A --> S[(SQLite)]
+    B --> S
+    S --> J[LLM judge<br/>Qwen · blind · rubric]
+    S --> H[Human labels<br/>blind]
+    J --> K{Calibrate<br/>κ per language}
+    H --> K
+    K --> C{Compare<br/>paired bootstrap per language}
+    J --> C
+    C --> O[Verdict + report<br/>Markdown · JSON]
 ```
 
-| Module | Responsibility |
+- **Every case is tagged** with its language (`fr`, `ar`, `aeb`), its script (`arab`, `latn`), the languages mixed in, and its intent. Verdicts and judge trust are computed separately for each language and script.
+- **The judge is blind and from a third model family.** It never sees which model wrote an answer, and it comes from neither family being compared, so it can't favour answers that sound like its own (self-preference bias).
+- **One question per rubric.** `correctness_v2` grades the facts against the store policy. `language_fidelity` grades whether a Derja question got a Derja answer, in the same script, rather than MSA or another dialect.
+- **Everything is cached and resumable.** Answers and grades are unique per (case, model, trial) and per (answer, rubric, judge), so re-running a command only does what's missing. That matters under API rate limits.
+
+## <img src="docs/icons/scale.svg" width="24" align="top" alt=""> The hard part: trust, per language, and signal vs. noise
+
+**1. A judge can be reliable in French and useless in Derja.** Raw agreement with humans is misleading: when most answers pass, a judge that says PASS to everything scores high. Lahja uses **Cohen's kappa**, which corrects for chance, computed **per language and per script**, with a **bootstrap confidence interval** on kappa itself. In the [worked example](docs/03-kappa.md), a pooled κ of **0.86** hides a Derja κ of **−0.05**. A language whose judge isn't trusted gets **`JUDGE_UNTRUSTED`** instead of a verdict. Lahja would rather say "I can't tell" than report a number its grader can't support.
+
+**2. A small drop is usually noise.** A 2-point drop on 150 cases has a paired 95% interval of about **[−7.4, +3.4] points** ([derivation](docs/04-bootstrap.md)). Lahja uses a **paired bootstrap over cases** (not answers, since trials of one case are correlated), and a **non-inferiority margin**:
+
+| Interval vs. tolerated drop (−3 pts) | Verdict |
 |---|---|
-| [lahja/dataset/](lahja/dataset/) | `EvalCase` schema (ISO 639 language, ISO 15924 script, code-switch, intent); JSONL loader |
-| [lahja/db/](lahja/db/) | SQLAlchemy 2.0 models. Unique constraints double as caches, so every step is resumable |
-| [lahja/targets/](lahja/targets/) | `ModelClient` protocol; one OpenAI-compatible client for Groq and Ollama, with 429/5xx backoff |
-| [lahja/judge/](lahja/judge/) | `Judge` protocol, `LLMJudge`, rubric loading. Rubrics are in [lahja/rubrics/](lahja/rubrics/) |
-| [lahja/stats/](lahja/stats/) | `cohen_kappa`, `paired_diff_ci`, `bootstrap_ci`, written by hand |
-| [lahja/calibrate.py](lahja/calibrate.py) | Per-language/per-script κ, κ CI, trust classification, paradox and leniency warnings |
-| [lahja/compare.py](lahja/compare.py) | Case scores → paired CI per language → non-inferiority outcome → trust gate → overall verdict |
-| [lahja/report.py](lahja/report.py) | JSON and Markdown reports |
+| entirely above | <img src="docs/icons/circle-check.svg" width="16" align="top" alt=""> **PASS**: any drop is within tolerance |
+| entirely below | <img src="docs/icons/circle-x.svg" width="16" align="top" alt=""> **FAIL**: confidently worse than tolerated |
+| straddles it | <img src="docs/icons/circle-help.svg" width="16" align="top" alt=""> **INCONCLUSIVE**: more cases needed |
 
-**Design choices worth defending:**
-- The judge is a **different model family from both models it grades** (OpenAI vs Meta, judged by Alibaba Qwen). LLM judges prefer outputs that resemble their own (self-preference bias), and that bias would tilt a current-vs-candidate comparison.
-- The judge is **blind** to which model wrote the answer and runs at temperature 0.
-- Verdicts are **binary**, with **one question per rubric** (`correctness` ignores language; `language_fidelity` grades only language). Kappa per rubric is then interpretable.
-- Datasets are **immutable**: edit the cases, import as `-v2`. Old runs stay tied to the exact cases they were graded on.
-- **Out of scope for the MVP:** dashboard, GitHub App, queue workers, cost/latency tracking.
+Any trusted language that FAILs fails the whole comparison. A regression in Derja can't be averaged away by French.
 
-## Setup
+Both statistics are implemented by hand (about 40 lines each), derived on paper in the docs, and tested against those worked examples. scikit-learn appears only in tests, as a reference implementation to check against.
 
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -e ".[dev]"
-copy .env.example .env      # add GROQ_API_KEY; confirm the Groq model IDs
+## <img src="docs/icons/square-terminal.svg" width="24" align="top" alt=""> Quick start
+
+Needs Python 3.11+, [Ollama](https://ollama.com) and a free [Groq](https://console.groq.com) API key.
+
+```bash
 ollama pull llama3.2:3b
-lahja config                # shows which model plays which role
-```
+python -m venv .venv && source .venv/bin/activate     # Windows: .\.venv\Scripts\Activate.ps1
+pip install -e ".[dev]"
+cp .env.example .env                                  # set GROQ_API_KEY
 
-## Workflow
-
-```powershell
-lahja dataset validate data\cases.jsonl
-lahja dataset import data\cases.jsonl --name support-v1 --system-prompt data\system_prompt.example.txt
-
-lahja run   --dataset support-v1 --role current     # N trials per case; re-run resumes
+lahja dataset import data/cases.jsonl --name support-v1 --system-prompt data/system_prompt.example.txt
+lahja run   --dataset support-v1 --role current       # N trials per case; re-run resumes
 lahja run   --dataset support-v1 --role candidate
-lahja judge --dataset support-v1 --role current
-lahja judge --dataset support-v1 --role candidate
-
-lahja label     --dataset support-v1 --per-language 25   # blind; repeat until each language has ≥ 20 labels
-lahja calibrate --dataset support-v1                     # per-language κ + trust
-
-lahja compare   --dataset support-v1                     # exit 0 PASS · 2 FAIL · 3 INCONCLUSIVE · 1 error
+lahja judge --dataset support-v1 --role current   --rubric correctness_v2
+lahja judge --dataset support-v1 --role candidate --rubric correctness_v2
+lahja label --dataset support-v1 --rubric correctness_v2 --per-language 25
+lahja calibrate --dataset support-v1 --rubric correctness_v2
+lahja compare   --dataset support-v1 --rubric correctness_v2   # exit 0 PASS · 2 FAIL · 3 INCONCLUSIVE
 ```
 
-Each of `judge`, `label`, `calibrate` and `compare` takes `--rubric`. Run the full loop once per rubric.
+<details>
+<summary><b>More commands</b></summary>
 
-## Tests
-
-```powershell
-pytest                    # unit tests, LLMs mocked (about 80 tests, ~15 s)
-pytest -m integration     # real calls: Ollama end-to-end; Groq tests skip without GROQ_API_KEY
+```bash
+lahja config                                        # which model plays which role
+lahja dataset validate data/cases.jsonl             # schema check + coverage per language/script
+lahja judge ... --trials 1                          # grade the first trial of every case first
+lahja judge ... --labeled-only                      # grade just the labeled answers (calibration first)
 ```
 
-## Docs: read in this order
+`lahja label` shows each answer in a Markdown preview (`labeling_current.md`), because terminals can't render right-to-left Arabic. You read in the preview and answer `p`/`f` in the terminal.
+</details>
 
-1. [docs/01-eval-cases.md](docs/01-eval-cases.md): what makes a good eval case, confounding, the Tunisian Derja template
-2. [docs/02-rubrics.md](docs/02-rubrics.md): rubric design, and the `language_fidelity` rubric to write
-3. [docs/03-kappa.md](docs/03-kappa.md): Cohen's kappa on paper, the kappa paradox, why per language
-4. [docs/04-bootstrap.md](docs/04-bootstrap.md): paired bootstrap on paper, why 2 points on 150 cases can be noise, the margin
+<details>
+<summary><b>Configuration</b></summary>
 
-## Status
+| Variable | Default | Purpose |
+|---|---|---|
+| `GROQ_API_KEY` | none | Groq key (current model and judge) |
+| `LAHJA_CURRENT_PROVIDER` / `_MODEL` | `groq` / `openai/gpt-oss-120b` | The model you have today |
+| `LAHJA_CANDIDATE_PROVIDER` / `_MODEL` | `ollama` / `llama3.2:3b` | The cheaper model you want to switch to |
+| `LAHJA_JUDGE_PROVIDER` / `_MODEL` | `groq` / `qwen/qwen3.8-27b` | The judge, from a third model family |
+| `LAHJA_TRIALS` | `3` | Answers per case per model |
+| `LAHJA_MARGIN` | `0.03` | Tolerated drop (non-inferiority margin) |
+| `LAHJA_DB_URL` | `sqlite:///lahja.db` | Postgres works too: it's a connection string |
+</details>
 
-- [x] Pipeline: dataset → run → judge → label → calibrate → compare → report
-- [x] Model roles confirmed against this Groq account: current `openai/gpt-oss-120b`, candidate Ollama `llama3.2:3b`, judge `qwen/qwen3.8-27b`
-- [x] Curated dataset `support-v1`: 236 cases, 59 scenarios × French, MSA, Tunisian Derja (Arabic script) and Tunisian Derja (Arabizi)
-- [x] `language_fidelity` rubric
-- [x] Candidate run (708 answers)
-- [ ] Current run: finishing under Groq's free-tier daily token cap
-- [ ] Judging, first trial per case, both rubrics
-- [ ] Labels: at least 20 per language (and per Derja script) per rubric
-- [ ] Results: calibration + verdict per language, written up here
+<details>
+<summary><b>Project layout</b></summary>
+
+| Path | What |
+|---|---|
+| [`lahja/dataset/`](lahja/dataset/) | Case schema (ISO 639 language, ISO 15924 script, code-switch, intent) and JSONL loader |
+| [`lahja/targets/`](lahja/targets/) | One OpenAI-compatible client for Groq and Ollama, with rate-limit backoff |
+| [`lahja/judge/`](lahja/judge/) · [`lahja/rubrics/`](lahja/rubrics/) | Judge interface, LLM judge, rubrics |
+| [`lahja/stats/`](lahja/stats/) | Cohen's kappa and the bootstrap, hand-written |
+| [`lahja/calibrate.py`](lahja/calibrate.py) | Kappa per language/script, trust gate, kappa-paradox and leniency warnings |
+| [`lahja/compare.py`](lahja/compare.py) | Paired bootstrap per language, non-inferiority verdict |
+| [`data/`](data/) | Test set, store policy, labels with provenance |
+| [`docs/`](docs/) | Design notes: eval cases, rubrics, kappa, bootstrap |
+</details>
+
+<details>
+<summary><b>How the labels were made</b></summary>
+
+132 answers were labeled for `correctness_v2`: 67 PASS and 65 FAIL, with at least 20 per language and per Derja script. Clear-cut answers were pre-labeled with an LLM and validated by a native-speaker curator; borderline cases were decided by the curator, who also set the grading rules now written into `correctness_v2`. Every label's source is recorded in [`data/labels/`](data/labels/).
+</details>
+
+## <img src="docs/icons/book-open.svg" width="24" align="top" alt=""> Docs
+
+1. [What makes a good eval case](docs/01-eval-cases.md): references, confounding, the Derja template
+2. [Rubrics](docs/02-rubrics.md): one question per rubric, and why `correctness_v2` exists
+3. [Cohen's kappa, on paper](docs/03-kappa.md): the kappa paradox, and why trust must be per language
+4. [The paired bootstrap, on paper](docs/04-bootstrap.md): why 2 points on 150 cases can be noise
+
+## <img src="docs/icons/flask-conical.svg" width="24" align="top" alt=""> Tests
+
+```bash
+pytest                   # 85 offline tests (LLMs faked); stats checked against the docs' worked examples
+pytest -m integration    # real calls: full pipeline on Ollama, Groq when a key is set
+```
+
+## Limitations
+
+- One domain (e-commerce support) and one dialect (Tunisian). Adding a dialect needs a fluent curator: its labels are the ground truth.
+- Percentile bootstrap intervals run narrow below ~20 cases, so smaller groups are never given PASS/FAIL.
+- One 95% interval per language means some chance of a false FAIL across several languages. A Bonferroni correction is not applied by default.
+- Judge trust is measured on the labeled sample. A judge drifting on unlabeled kinds of answers would not be caught.
