@@ -6,3 +6,5 @@ __pycache__/
 *.db
 reports/
 labeling_current.md
+desktop.ini
+Thumbs.db
