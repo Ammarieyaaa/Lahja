@@ -82,7 +82,7 @@ In the real file, each case is **one line** (JSONL). The format above is spread 
 Decisions that are yours to make. Write them down in this doc once you've made them:
 
 - **What language is `reference` written in?** For the correctness rubric it's a list of facts, so the language matters less than precision. Your Moroccan set used English, and keeping that convention is fine.
-- **`code_switch`:** list a language only when it is really mixed in. "Derja with the usual French loanwords" may count as plain Derja for you. Decide where your line is.
+- **`code_switch`:** list a language only when it is really mixed in. **Decided:** everyday French support words (`commande`, `livraison`, `colis`, `remboursement`…) are part of Tunisian Derja and do **not** count, in either script. `fr` is reserved for real switches: a French phrase or sentence (*"les moyens de paiement"*, *"les commandes l banzart…"*). The `language_fidelity` rubric applies the same rule. *Known gap:* `support-v1` was imported before this rule was settled, and some Arabic-script cases are marked `fr` only for loanwords. That's harmless, because no verdict is split by `code_switch`. Correct the labels in the next dataset version.
 - **Arabizi vs Arabic script:** include both if real customers use both. Lahja reports them as separate breakdowns.
 - **Edge cases worth having:** a Derja message that ends in French; an Arabizi message using digits (3, 5, 7, 9); a short or ambiguous message; a question the policy doesn't cover (correct behavior is to hand off to a human).
 
