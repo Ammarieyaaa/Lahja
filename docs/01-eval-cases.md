@@ -13,7 +13,7 @@ Lahja can only detect a regression if the dataset contains a case where it shows
 |---|---|---|
 | `input` | The customer's message, **exactly as a real customer would type it**: typos, no accents, mixed languages. | If the inputs are cleaner than real traffic, you are testing a model that doesn't exist. |
 | `reference` | The **key facts** a correct answer must contain, not a model answer to copy. | The judge checks facts against it. If it is vague ("explains the refund policy"), the judge has nothing to check against and its grades become noise. |
-| `language` / `script` / `code_switch` | The language label. `ary` is Darija, `script` is `arab` or `latn` (Arabizi), and `code_switch` lists the other languages mixed in. | Every verdict and every judge-trust score is **split by language**. Script is tracked separately because "the judge reads Darija" and "the judge reads Arabizi" are different claims. |
+| `language` / `script` / `code_switch` | The language label: `fr`, `ar` (MSA), `ary` (Moroccan Darija) or `aeb` (Tunisian Derja). `script` is `arab` or `latn` (Arabizi), and `code_switch` lists the other languages mixed in (`en` is allowed here too). | Every verdict and every judge-trust score is **split by language**. Script is tracked separately because "the judge reads Darija" and "the judge reads Arabizi" are different claims. |
 | `intent` | What the customer wants (`refund_duplicate_charge`, `delivery_status`, ...). | Coverage and confounding, explained below. |
 | `notes` | For humans only: why this case exists and what makes it pass or fail. | It's the curator's reasoning. **The judge never sees it.** If a fact matters for grading, it belongs in `reference`. |
 
@@ -55,6 +55,14 @@ Lessons for when you curate:
 - **Read the judge's `reason` whenever a verdict surprises you.** A surprise usually points to the reference or the rubric before it points to the judge.
 - **Fix the case, not the grade.** Then import again under a new name (`examples-v2`). Old runs stay tied to the old wording.
 - **Write references against the actual input.** A policy fact is only part of the answer if the customer hasn't already covered it.
+
+## Tunisian Derja (`aeb`)
+
+Use the same format as the Darija template below with `"language": "aeb"`, and `"script": "arab"` or `"latn"` (Tunisian Arabizi). Use the Tunisian policy in [data/system_prompt.tunisia.txt](../data/system_prompt.tunisia.txt): Tunis/Sfax/Sousse, prices in TND. It has the same rules as the Moroccan one, so the existing scenarios carry over by swapping cities and currency.
+
+**Write and label only the dialect you're fluent in.** Your blind labels are the ground truth for the judge's kappa. If you're unsure of a dialect, your labels add noise, and Lahja's trust gate stops meaning anything for that language.
+
+**Keep each dataset tied to one policy.** A dataset is imported with a single system prompt, and every reference must follow from it. Tunisian cases plus French cases about Tunis and TND go together in one dataset with `system_prompt.tunisia.txt`. Don't mix Moroccan-policy and Tunisian-policy cases in one dataset.
 
 ## Darija: your part
 

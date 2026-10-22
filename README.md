@@ -1,6 +1,6 @@
 # Lahja
 
-**Regression testing for LLM features, with first-class support for French, Arabic and Moroccan Darija, including code-switching.**
+**Regression testing for LLM features, with first-class support for French, Arabic, Moroccan Darija and Tunisian Derja, including code-switching.**
 
 *Lahja* (لهجة) means "dialect".
 

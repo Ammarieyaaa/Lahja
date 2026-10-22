@@ -6,16 +6,21 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-# ISO 639: fr = French, ar = Modern Standard Arabic, ary = Moroccan Darija.
-Language = Literal["fr", "ar", "ary"]
+# ISO 639: fr = French, ar = Modern Standard Arabic, ary = Moroccan Darija, aeb = Tunisian Arabic (Derja).
+Language = Literal["fr", "ar", "ary", "aeb"]
 # Languages that may be mixed INTO an input. Customers also mix in English ("cash on delivery"),
 # even though English is not a language Lahja grades.
-MixedLanguage = Literal["fr", "ar", "ary", "en"]
-# ISO 15924: latn = Latin script (French, or Darija written as Arabizi), arab = Arabic script.
+MixedLanguage = Literal["fr", "ar", "ary", "aeb", "en"]
+# ISO 15924: latn = Latin script (French, or a dialect written as Arabizi), arab = Arabic script.
 Script = Literal["latn", "arab"]
 
 # Which scripts each language may legitimately appear in.
-_ALLOWED_SCRIPTS: dict[str, set[str]] = {"fr": {"latn"}, "ar": {"arab"}, "ary": {"arab", "latn"}}
+_ALLOWED_SCRIPTS: dict[str, set[str]] = {
+    "fr": {"latn"},
+    "ar": {"arab"},
+    "ary": {"arab", "latn"},
+    "aeb": {"arab", "latn"},
+}
 
 
 class EvalCase(BaseModel):

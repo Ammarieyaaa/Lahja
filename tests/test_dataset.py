@@ -34,6 +34,12 @@ def test_darija_allows_both_scripts():
     make_case("b", "ary", "latn")
 
 
+def test_tunisian_allows_both_scripts_and_mixing():
+    make_case("a", "aeb", "arab", code_switch=["fr"])
+    make_case("b", "aeb", "latn")
+    make_case("c", "ary", "arab", code_switch=["aeb"])
+
+
 def test_english_can_be_mixed_in_but_not_graded():
     make_case("a", "ary", "latn", code_switch=["fr", "en"])
     with pytest.raises(ValidationError):
