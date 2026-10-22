@@ -18,6 +18,10 @@ You've already built an LLM judge, so this doc covers only what changes when the
 - **Temperature is 0.** We are measuring the target model's randomness, not the grader's.
 - **Cache key is (response, rubric, judge model).** Changing the rubric text without renaming it would reuse stale grades. **If you change a rubric's meaning, give it a new name** (e.g. `correctness_v2`).
 
+## `correctness_v2`: the rubric actually used
+
+While labeling, the curator settled four rules: (A) a delivery-status answer must say explicitly whether the order is within the window or late; (B) any invented exception or remedy fails; (C) facts needed to act are enough, secondary details aren't required; (D) a refusal must give the actual reason. B and C were already in `correctness`. A and D tighten it, so they live in a **new** rubric, [`correctness_v2.md`](../lahja/rubrics/correctness_v2.md). Editing `correctness` in place would have silently mixed old and new judgments in the cache. The judge was re-run with v2 so that judge and human apply the same standard: otherwise kappa would measure the rule mismatch, not the judge. 🎯
+
 ## The rubric I wrote: [`correctness.md`](../lahja/rubrics/correctness.md)
 
 Read it, then look at the structure: the question → PASS (all of) → FAIL (any of) → Ignore → Borderline cases. The "Ignore" section matters as much as the rest, because it stops the judge from failing a correct answer for being in the "wrong" language, which is the other rubric's job.
