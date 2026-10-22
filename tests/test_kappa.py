@@ -29,7 +29,7 @@ def table(both_pass, human_pass_judge_fail, human_fail_judge_pass, both_fail):
         ((19, 0, 1, 0), 0.95, 0.95, 0.0),  # always-PASS judge on example B's data
         ((91, 4, 1, 4), 0.95, 0.878, 0.5902),  # paradox scenario 1: 95% prevalence
         ((48, 2, 10, 40), 0.88, 0.50, 0.76),  # paradox scenario 2: same judge, 50% prevalence
-        ((64, 3, 3, 30), 0.94, 0.5578, 0.8643),  # pooled fr + ary hides the Darija problem
+        ((64, 3, 3, 30), 0.94, 0.5578, 0.8643),  # pooled fr + aeb hides the Tunisian problem
     ],
 )
 def test_worked_examples(cells, p_o, p_e, kappa):

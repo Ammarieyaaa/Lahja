@@ -33,30 +33,30 @@ def trusted(_):
 
 
 def test_all_languages_hold_up_gives_pass():
-    cases = lang_cases("fr", 100, 80, 80) + lang_cases("ary", 100, 70, 70)
+    cases = lang_cases("fr", 100, 80, 80) + lang_cases("aeb", 100, 70, 70)
     result = compare_cases(cases, trusted, margin=MARGIN)
     assert result.overall is Outcome.PASS and result.reasons == []
 
 
-def test_darija_regression_fails_even_when_pooled_looks_fine():
-    # French: identical. Darija: 25-point drop, but only 40 of 240 cases, so the pooled drop is ~4 points.
-    cases = lang_cases("fr", 200, 160, 160) + lang_cases("ary", 40, 30, 20)
+def test_tunisian_regression_fails_even_when_pooled_looks_fine():
+    # French: identical. Tunisian: 25-point drop, but only 40 of 240 cases, so the pooled drop is ~4 points.
+    cases = lang_cases("fr", 200, 160, 160) + lang_cases("aeb", 40, 30, 20)
     result = compare_cases(cases, trusted, margin=MARGIN)
     by = {g.group: g for g in result.by_language}
     assert by["fr"].outcome is Outcome.PASS
-    assert by["ary"].outcome is Outcome.FAIL
+    assert by["aeb"].outcome is Outcome.FAIL
     assert result.overall is Outcome.FAIL
     assert result.pooled.outcome is not Outcome.FAIL  # the pooled view would not have caught it
 
 
 def test_untrusted_judge_blocks_the_verdict_for_that_language():
-    cases = lang_cases("fr", 100, 80, 80) + lang_cases("ary", 100, 80, 40)  # big Darija "drop"
-    trust = {"fr": Trust.TRUSTED, "ary": Trust.UNTRUSTED}.get
+    cases = lang_cases("fr", 100, 80, 80) + lang_cases("aeb", 100, 80, 40)  # big Tunisian "drop"
+    trust = {"fr": Trust.TRUSTED, "aeb": Trust.UNTRUSTED}.get
     result = compare_cases(cases, trust, margin=MARGIN)
-    ary = next(g for g in result.by_language if g.group == "ary")
-    assert ary.statistical is Outcome.FAIL and ary.outcome is Outcome.JUDGE_UNTRUSTED
+    aeb = next(g for g in result.by_language if g.group == "aeb")
+    assert aeb.statistical is Outcome.FAIL and aeb.outcome is Outcome.JUDGE_UNTRUSTED
     assert result.overall is Outcome.INCONCLUSIVE
-    assert any("ary: judge not trusted" in r for r in result.reasons)
+    assert any("aeb: judge not trusted" in r for r in result.reasons)
 
 
 def test_caution_keeps_the_verdict_but_warns():

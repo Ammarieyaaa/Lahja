@@ -7,7 +7,7 @@ Read this before [`lahja/stats/kappa.py`](../lahja/stats/kappa.py). The code is 
 
 ## Step 1: Why not raw agreement?
 
-Here are 20 Darija answers you labeled, next to the judge's verdicts:
+Here are 20 Tunisian answers you labeled, next to the judge's verdicts:
 
 |                | judge PASS | judge FAIL | total |
 |----------------|-----------:|-----------:|------:|
@@ -59,7 +59,7 @@ Read it as a fraction:
 - $p_e = 0.65 \times 0.65 + 0.35 \times 0.35 = 0.4225 + 0.1225 = 0.545$
 - $\kappa = (0.80 - 0.545)/(1 - 0.545) = 0.255 / 0.455 = \mathbf{0.56}$
 
-## Worked example B: the Darija table from step 1
+## Worked example B: the Tunisian table from step 1
 
 - $p_o = 18/20 = 0.90$
 - $p_{you} = 19/20 = 0.95$ and $p_{judge} = 19/20 = 0.95$
@@ -106,7 +106,7 @@ Same judge, **κ 0.59 vs 0.76**, and the scenario with *higher* raw agreement (9
 
 ## Why per language: pooling hides the problem 🎯
 
-80 French labels with a good judge (46 / 2 / 2 / 30, so κ = 0.90), plus example B's 20 Darija labels (κ = −0.05). Pool them:
+80 French labels with a good judge (46 / 2 / 2 / 30, so κ = 0.90), plus example B's 20 Tunisian labels (κ = −0.05). Pool them:
 
 |            | judge PASS | judge FAIL |
 |------------|-----------:|-----------:|
@@ -115,7 +115,7 @@ Same judge, **κ 0.59 vs 0.76**, and the scenario with *higher* raw agreement (9
 
 $p_o = 0.94$, $p_{you} = p_{judge} = 0.67$, $p_e = 0.67^2 + 0.33^2 = 0.558$, so **κ = 0.86**.
 
-The pooled number says "almost perfect" while the judge is useless on Darija. The majority language dominates the pooled kappa. This is the core reason Lahja's trust gate works per language.
+The pooled number says "almost perfect" while the judge is useless on Tunisian. The majority language dominates the pooled kappa. This is the core reason Lahja's trust gate works per language.
 
 ## What counts as "trusted"?
 

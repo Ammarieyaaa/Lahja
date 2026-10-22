@@ -1,6 +1,6 @@
 # Lahja
 
-**Regression testing for LLM features, with first-class support for French, Arabic, Moroccan Darija and Tunisian Derja, including code-switching.**
+**Regression testing for LLM features, with first-class support for French, Arabic and Tunisian Derja, including code-switching.**
 
 *Lahja* (لهجة) means "dialect".
 
@@ -8,10 +8,10 @@ A team has an LLM feature, say a support bot, and wants to switch to a cheaper m
 
 ```
   ar      62 cases  delta CI [-4.1, +2.3]     PASS
-  ary     58 cases  delta CI [-31.0, -12.1]   JUDGE_UNTRUSTED
+  aeb     58 cases  delta CI [-31.0, -12.1]   JUDGE_UNTRUSTED
   fr      70 cases  delta CI [-2.9, +3.6]     PASS
 VERDICT: INCONCLUSIVE
-  - ary: judge not trusted (UNTRUSTED); label more answers or fix the rubric
+  - aeb: judge not trusted (UNTRUSTED); label more answers or fix the rubric
   - note: the pooled all-language number alone would have said PASS
 ```
 
@@ -23,7 +23,7 @@ There are two ways a regression test for multilingual LLM features goes wrong wi
 
 ### 1. The grader is reliable in one language and not in another
 
-An LLM judge can grade French well and Darija badly. Darija is under-represented in training data, comes in two scripts (Arabic and Arabizi: `3afak`, `9alb`), and mixes in French mid-sentence. If you validate the judge on all your labels pooled together, the majority language dominates. In [docs/03](docs/03-kappa.md) a pooled κ of 0.86 hides a Darija κ of −0.05.
+An LLM judge can grade French well and Tunisian Derja badly. Derja is under-represented in training data, comes in two scripts (Arabic and Arabizi, with digits for sounds like `3` and `7`), and mixes in French mid-sentence. If you validate the judge on all your labels pooled together, the majority language dominates. In [docs/03](docs/03-kappa.md) a pooled κ of 0.86 hides a Tunisian κ of −0.05.
 
 **Solution: a per-language trust gate.**
 - You label a sample of answers **blind**: you see no model name and no judge verdict.
@@ -34,7 +34,7 @@ An LLM judge can grade French well and Darija badly. Darija is under-represented
 
 ### 2. A small difference is mistaken for a real one, or the other way round
 
-A 2-point drop on 150 cases is very likely noise: the paired 95% CI is about [−7.4, +3.4] points ([docs/04](docs/04-bootstrap.md)). In the other direction, a 25-point Darija drop can shrink to about 4 points when pooled with plenty of French cases, and get waved through.
+A 2-point drop on 150 cases is very likely noise: the paired 95% CI is about [−7.4, +3.4] points ([docs/04](docs/04-bootstrap.md)). In the other direction, a 25-point Tunisian drop can shrink to about 4 points when pooled with plenty of French cases, and get waved through.
 
 **Solution: a paired bootstrap, per language, with a non-inferiority margin.**
 - Both models answer the same cases. Trials are averaged into one score per case, and **cases** (the independent unit) are resampled in pairs. Shared case difficulty cancels, so the CI is about half as wide as an unpaired one.
@@ -121,7 +121,7 @@ pytest -m integration     # real calls: Ollama end-to-end; Groq tests skip witho
 
 ## Docs: read in this order
 
-1. [docs/01-eval-cases.md](docs/01-eval-cases.md): what makes a good eval case, confounding, the Darija template
+1. [docs/01-eval-cases.md](docs/01-eval-cases.md): what makes a good eval case, confounding, the Tunisian Derja template
 2. [docs/02-rubrics.md](docs/02-rubrics.md): rubric design, and the `language_fidelity` rubric to write
 3. [docs/03-kappa.md](docs/03-kappa.md): Cohen's kappa on paper, the kappa paradox, why per language
 4. [docs/04-bootstrap.md](docs/04-bootstrap.md): paired bootstrap on paper, why 2 points on 150 cases can be noise, the margin
@@ -130,6 +130,6 @@ pytest -m integration     # real calls: Ollama end-to-end; Groq tests skip witho
 
 - [x] Pipeline: dataset → run → judge → label → calibrate → compare → report
 - [x] Model roles confirmed against this Groq account: current `openai/gpt-oss-120b`, candidate Ollama `llama3.2:3b`, judge `qwen/qwen3.8-27b`
-- [ ] Curated dataset, including Darija cases in Arabic script and Arabizi
+- [ ] Curated dataset, including Tunisian Derja cases in Arabic script and Arabizi (Tunisian policy)
 - [ ] `language_fidelity` rubric
 - [ ] Labels: at least 20 per language per rubric

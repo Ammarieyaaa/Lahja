@@ -19,7 +19,7 @@ def test_example_file_is_valid():
     [
         {"language": "fr", "script": "arab"},  # French isn't written in Arabic script
         {"language": "ar", "script": "latn"},  # MSA in Latin script isn't a case we model
-        {"language": "ary", "script": "arab", "code_switch": ["ary"]},  # main language listed as code-switch
+        {"language": "aeb", "script": "arab", "code_switch": ["aeb"]},  # main language listed as code-switch
         {"reference": "   "},  # whitespace-only reference
         {"surprise": "field"},  # typo'd / unknown field
     ],
@@ -29,19 +29,18 @@ def test_invalid_cases_are_rejected(overrides):
         make_case("x", **overrides)
 
 
-def test_darija_allows_both_scripts():
-    make_case("a", "ary", "arab", code_switch=["fr"])
-    make_case("b", "ary", "latn")
-
-
-def test_tunisian_allows_both_scripts_and_mixing():
+def test_tunisian_allows_both_scripts():
     make_case("a", "aeb", "arab", code_switch=["fr"])
     make_case("b", "aeb", "latn")
-    make_case("c", "ary", "arab", code_switch=["aeb"])
+
+
+def test_moroccan_darija_is_not_a_supported_language():
+    with pytest.raises(ValidationError):
+        make_case("a", "ary", "arab")
 
 
 def test_english_can_be_mixed_in_but_not_graded():
-    make_case("a", "ary", "latn", code_switch=["fr", "en"])
+    make_case("a", "aeb", "latn", code_switch=["fr", "en"])
     with pytest.raises(ValidationError):
         make_case("b", "en", "latn")
 
@@ -58,10 +57,10 @@ def test_read_cases_reports_every_error_with_line_numbers(tmp_path):
 
 
 def test_import_stores_cases_and_refuses_name_reuse(session):
-    cases = [make_case("fr-1"), make_case("ary-1", "ary", "latn", code_switch=["fr"])]
+    cases = [make_case("fr-1"), make_case("aeb-1", "aeb", "latn", code_switch=["fr"])]
     import_dataset(session, "v1", cases, system_prompt="sp")
     stored = get_dataset(session, "v1")
-    assert [c.external_id for c in stored.cases] == ["fr-1", "ary-1"]
+    assert [c.external_id for c in stored.cases] == ["fr-1", "aeb-1"]
     assert stored.cases[1].code_switch == ["fr"]
     with pytest.raises(DatasetError, match="already exists"):
         import_dataset(session, "v1", cases)

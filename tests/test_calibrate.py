@@ -17,25 +17,25 @@ def test_trust_levels_follow_kappa_per_language():
     labels = (
         pairs("fr", (46, 2, 2, 30))  # kappa 0.90
         + pairs("ar", (11, 2, 2, 5), "arab")  # kappa 0.56
-        + pairs("ary", (18, 1, 1, 0), "arab")  # kappa -0.05, the Darija example from docs/03
+        + pairs("aeb", (18, 1, 1, 0), "arab")  # kappa -0.05, the Tunisian example from docs/03
     )
-    result = calibrate(labels, ["fr", "ar", "ary"])
+    result = calibrate(labels, ["fr", "ar", "aeb"])
     assert result.trust("fr") is Trust.TRUSTED
     assert result.trust("ar") is Trust.CAUTION
-    assert result.trust("ary") is Trust.UNTRUSTED
+    assert result.trust("aeb") is Trust.UNTRUSTED
 
 
 def test_paradox_and_missed_failures_are_flagged():
-    ary = calibrate(pairs("ary", (18, 1, 1, 0), "arab"), ["ary"]).by_language["ary"]
-    assert any("Kappa paradox" in n for n in ary.notes)
-    assert any("passed 1 of 1 answers you failed" in n for n in ary.notes)
+    aeb = calibrate(pairs("aeb", (18, 1, 1, 0), "arab"), ["aeb"]).by_language["aeb"]
+    assert any("Kappa paradox" in n for n in aeb.notes)
+    assert any("passed 1 of 1 answers you failed" in n for n in aeb.notes)
 
 
 def test_too_few_labels_or_unlabeled_language_is_insufficient():
-    result = calibrate(pairs("fr", (8, 1, 1, 5)), ["fr", "ary"])
+    result = calibrate(pairs("fr", (8, 1, 1, 5)), ["fr", "aeb"])
     assert result.trust("fr") is Trust.INSUFFICIENT  # 15 < 20 labels
-    assert result.trust("ary") is Trust.INSUFFICIENT  # in the dataset, never labeled
-    assert result.by_language["ary"].n == 0
+    assert result.trust("aeb") is Trust.INSUFFICIENT  # in the dataset, never labeled
+    assert result.by_language["aeb"].n == 0
 
 
 def test_constant_verdicts_make_kappa_undefined():
@@ -44,10 +44,10 @@ def test_constant_verdicts_make_kappa_undefined():
 
 
 def test_script_breakdown_only_when_language_uses_two_scripts():
-    labels = pairs("ary", (10, 0, 0, 10), "arab") + pairs("ary", (5, 3, 3, 4), "latn") + pairs("fr", (10, 0, 0, 10))
-    result = calibrate(labels, ["ary", "fr"])
-    assert set(result.by_script) == {"ary/arab", "ary/latn"}
-    assert result.by_script["ary/latn"].kappa.kappa < result.by_script["ary/arab"].kappa.kappa
+    labels = pairs("aeb", (10, 0, 0, 10), "arab") + pairs("aeb", (5, 3, 3, 4), "latn") + pairs("fr", (10, 0, 0, 10))
+    result = calibrate(labels, ["aeb", "fr"])
+    assert set(result.by_script) == {"aeb/arab", "aeb/latn"}
+    assert result.by_script["aeb/latn"].kappa.kappa < result.by_script["aeb/arab"].kappa.kappa
 
 
 def test_good_kappa_with_wide_ci_is_only_caution():

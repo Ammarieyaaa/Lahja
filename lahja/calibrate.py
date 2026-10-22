@@ -44,7 +44,7 @@ class LabelPair:
 
 @dataclass
 class GroupCalibration:
-    group: str  # "ary", or "ary/latn" for a script breakdown
+    group: str  # "aeb", or "aeb/latn" for a script breakdown
     n: int
     kappa: KappaResult
     confusion: Confusion

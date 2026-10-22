@@ -9,12 +9,12 @@ You've already built an LLM judge, so this doc covers only what changes when the
 3. **Write the FAIL conditions explicitly.** "PASS if the answer is good" leaves the judge to invent the standard. Each FAIL bullet in `correctness.md` names a failure mode seen in practice. "Deflects to support when the info was available" is there because the 3B candidate did exactly that on `fr-001` in the first smoke run.
 4. **Decide the borderline cases in writing.** These are where you and the judge will disagree, so settle them in the rubric rather than at labeling time. Then **you label using the same rubric** in `lahja label`. Kappa only means something if you and the judge are applying the same standard.
 5. **Reasoning before verdict.** The JSON asks for `reason` before `verdict`, so the model commits to an argument before a label instead of rationalizing a label it already chose.
-6. **The rubric is in English even for Darija answers.** That's on purpose. The instructions stay fixed, and calibration then tests whether the judge can *read* Darija. If kappa on Darija is low, a Darija-language rubric is one experiment worth trying, and Lahja will measure whether it helps.
+6. **The rubric is in English even for Tunisian answers.** That's on purpose. The instructions stay fixed, and calibration then tests whether the judge can *read* Derja. If kappa on Tunisian is low, a Derja-language rubric is one experiment worth trying, and Lahja will measure whether it helps.
 
 ## How the judge is kept honest
 
 - **It's blind.** `Judge.grade(question, reference, answer)` receives no model name and no language label. It can't go easy on "the big model".
-- **It's a different family from both models it grades (self-preference bias).** Current is `openai/gpt-oss-120b` (OpenAI), candidate is `llama3.2:3b` (Meta), and the judge is `qwen/qwen3.8-27b` (Alibaba), so it has no "own style" on either side. Qwen is also the stronger Arabic model of the families available on this Groq account. Whether it reads *Darija* well is an open question, and calibration answers it. 🎯
+- **It's a different family from both models it grades (self-preference bias).** Current is `openai/gpt-oss-120b` (OpenAI), candidate is `llama3.2:3b` (Meta), and the judge is `qwen/qwen3.8-27b` (Alibaba), so it has no "own style" on either side. Qwen is also the stronger Arabic model of the families available on this Groq account. Whether it reads *Tunisian Derja* well is an open question, and calibration answers it. 🎯
 - **Temperature is 0.** We are measuring the target model's randomness, not the grader's.
 - **Cache key is (response, rubric, judge model).** Changing the rubric text without renaming it would reuse stale grades. **If you change a rubric's meaning, give it a new name** (e.g. `correctness_v2`).
 
@@ -24,12 +24,12 @@ Read it, then look at the structure: the question → PASS (all of) → FAIL (an
 
 ## The rubric you write: `language_fidelity`
 
-The system prompt says: *reply in the customer's language and register; Darija in the same script; no switching to MSA/French unless the customer does.* Small models regress on this a lot, sliding from Darija into MSA or French. It may be the biggest Darija regression Lahja catches.
+The system prompt says: *reply in the customer's language and register; Derja in the same script; no switching to MSA/French unless the customer does.* Small models regress on this a lot, sliding from Derja into MSA or French. It may be the biggest Tunisian regression Lahja catches.
 
 Create `lahja/rubrics/language_fidelity.md` with the same structure. You have to make these decisions; nobody else can make them for you:
 
-- **What counts as Darija rather than MSA?** One MSA phrase in a Darija reply: FAIL? What about a fully MSA reply to a Darija question?
-- **Script:** an Arabizi question answered in Arabic-script Darija: PASS or FAIL?
+- **What counts as Derja rather than MSA?** One MSA phrase in a Derja reply: FAIL? What about a fully MSA reply to a Derja question? A reply in another dialect (Moroccan, Egyptian)?
+- **Script:** an Arabizi question answered in Arabic-script Derja: PASS or FAIL?
 - **Code-switching:** if the customer mixed in French, may the answer use French? How much? Do product terms like "commande" or "remboursement" count as switching?
 - **French register:** if the customer uses informal French, is a formal reply a FAIL? (Probably not. Decide and write it down.)
 - **What to ignore:** correctness of the facts, since the other rubric grades that.
