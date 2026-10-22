@@ -1,0 +1,129 @@
+response_id,case,language,script,rubric,label,source,note
+67,aeb-ar-001,aeb,arab,correctness,FAIL,claude-prelabel,deflects to a human; window info was available
+165,aeb-ar-009,aeb,arab,correctness,FAIL,claude-prelabel,"says yes, Tunis can take 8 days (it is 2-5)"
+343,aeb-ar-018,aeb,arab,correctness,PASS,claude-prelabel,"4-8 window, 4 days possible but not guaranteed"
+829,aeb-ar-024,aeb,arab,correctness,FAIL,claude-prelabel,invents a delay; no 'My orders'
+468,aeb-ar-025,aeb,arab,correctness,PASS,claude-prelabel,My orders + order number
+601,aeb-ar-032,aeb,arab,correctness,PASS,claude-prelabel,5 TND
+621,aeb-ar-033,aeb,arab,correctness,PASS,claude-prelabel,5 TND
+958,aeb-ar-034,aeb,arab,correctness,FAIL,claude-prelabel,says no extra fee
+664,aeb-ar-035,aeb,arab,correctness,PASS,claude-prelabel,5 TND
+1007,aeb-ar-038,aeb,arab,correctness,FAIL,claude-prelabel,"asks for documents, wrong delay"
+1044,aeb-ar-041,aeb,arab,correctness,FAIL,claude-prelabel,incoherent
+1142,aeb-ar-049,aeb,arab,correctness,FAIL,claude-prelabel,"contradictory 8/5 TND, incoherent"
+1167,aeb-ar-051,aeb,arab,correctness,FAIL,claude-prelabel,incoherent
+604,aeb-ar-017,aeb,arab,correctness,FAIL,claude-prelabel,incoherent
+1069,aeb-ar-043,aeb,arab,correctness,FAIL,claude-prelabel,omits return shipping fees
+95,aeb-ar-005,aeb,arab,correctness,FAIL,claude-prelabel,invents reshipping/refund remedy
+722,aeb-ar-038,aeb,arab,correctness,PASS,claude-prelabel,"all facts, order number already given"
+1056,aeb-ar-042,aeb,arab,correctness,FAIL,claude-prelabel,incoherent
+398,aeb-ar-011,aeb,arab,correctness,FAIL,claude-prelabel,says Sousse is 4-8
+910,aeb-ar-030,aeb,arab,correctness,FAIL,claude-prelabel,does not answer the cash question
+548,aeb-ar-029,aeb,arab,correctness,PASS,claude-prelabel,cash on delivery + 5 TND
+187,aeb-la-004,aeb,latn,correctness,FAIL,claude-prelabel,"no window, incoherent"
+284,aeb-la-007,aeb,latn,correctness,FAIL,claude-prelabel,wrong 2-5 window
+135,aeb-la-007,aeb,latn,correctness,PASS,claude-prelabel,"4-8, normal"
+207,aeb-la-011,aeb,latn,correctness,PASS,claude-prelabel,"2-5, slightly late"
+223,aeb-la-012,aeb,latn,correctness,PASS,claude-prelabel,4-8
+300,aeb-la-016,aeb,latn,correctness,FAIL,claude-prelabel,"deflects, claims not in policy"
+637,aeb-la-018,aeb,latn,correctness,FAIL,claude-prelabel,says 4 days usually enough; omits 4-8 window
+383,aeb-la-020,aeb,latn,correctness,PASS,claude-prelabel,"4-8, 7 days normal"
+456,aeb-la-024,aeb,latn,correctness,PASS,claude-prelabel,My orders + order number
+901,aeb-la-029,aeb,latn,correctness,FAIL,claude-prelabel,incoherent; no clear cash-on-delivery
+589,aeb-la-031,aeb,latn,correctness,PASS,claude-prelabel,5 TND
+685,aeb-la-036,aeb,latn,correctness,PASS,claude-prelabel,all facts
+998,aeb-la-037,aeb,latn,correctness,FAIL,claude-prelabel,"incoherent, invents 5 TND"
+745,aeb-la-039,aeb,latn,correctness,PASS,claude-prelabel,all facts
+1059,aeb-la-042,aeb,latn,correctness,FAIL,claude-prelabel,incoherent
+1084,aeb-la-044,aeb,latn,correctness,FAIL,claude-prelabel,"talks delivery windows, not returns"
+836,aeb-la-044,aeb,latn,correctness,PASS,claude-prelabel,all facts
+1208,aeb-la-045,aeb,latn,correctness,PASS,claude-prelabel,all facts
+1109,aeb-la-046,aeb,latn,correctness,FAIL,claude-prelabel,incoherent
+1170,aeb-la-051,aeb,latn,correctness,FAIL,claude-prelabel,contradictory 8/7 dinars
+1194,aeb-la-053,aeb,latn,correctness,FAIL,claude-prelabel,incoherent
+56,ar-001,ar,arab,correctness,FAIL,claude-prelabel,deflects
+93,ar-002,ar,arab,correctness,FAIL,claude-prelabel,"misleading, no Sfax window"
+133,ar-003,ar,arab,correctness,FAIL,claude-prelabel,deflects
+171,ar-004,ar,arab,correctness,FAIL,claude-prelabel,contradictory windows
+201,ar-005,ar,arab,correctness,FAIL,claude-prelabel,deflects
+112,ar-006,ar,arab,correctness,PASS,claude-prelabel,2-5
+304,ar-008,ar,arab,correctness,FAIL,claude-prelabel,"says no, escalates"
+145,ar-008,ar,arab,correctness,PASS,claude-prelabel,"4-8, within"
+178,ar-010,ar,arab,correctness,PASS,claude-prelabel,"4-8, may still be on its way"
+357,ar-010,ar,arab,correctness,FAIL,claude-prelabel,deflects
+389,ar-011,ar,arab,correctness,FAIL,claude-prelabel,says Sousse is 4-8
+197,ar-011,ar,arab,correctness,PASS,claude-prelabel,"2-5, slightly late"
+214,ar-012,ar,arab,correctness,PASS,claude-prelabel,4-8
+498,ar-014,ar,arab,correctness,FAIL,claude-prelabel,"says no, not within"
+256,ar-014,ar,arab,correctness,PASS,claude-prelabel,within 4-8
+527,ar-015,ar,arab,correctness,FAIL,claude-prelabel,says Bizerte is 2-5
+293,ar-016,ar,arab,correctness,PASS,claude-prelabel,within 2-5
+652,ar-019,ar,arab,correctness,FAIL,claude-prelabel,wrong/incoherent
+686,ar-020,ar,arab,correctness,FAIL,claude-prelabel,nonsense about Sunday
+449,ar-024,ar,arab,correctness,PASS,claude-prelabel,My orders
+846,ar-025,ar,arab,correctness,PASS,claude-prelabel,account + order number
+481,ar-026,ar,arab,correctness,PASS,claude-prelabel,card + COD
+858,ar-026,ar,arab,correctness,FAIL,claude-prelabel,COD garbled/missing
+519,ar-028,ar,arab,correctness,PASS,claude-prelabel,both methods
+895,ar-029,ar,arab,correctness,FAIL,claude-prelabel,says a card is required
+942,ar-033,ar,arab,correctness,PASS,claude-prelabel,5 TND
+638,ar-034,ar,arab,correctness,PASS,claude-prelabel,5 TND
+659,ar-035,ar,arab,correctness,PASS,claude-prelabel,5 TND
+770,ar-041,ar,arab,correctness,PASS,claude-prelabel,all facts
+807,ar-043,ar,arab,correctness,PASS,claude-prelabel,all facts
+1065,ar-043,ar,arab,correctness,FAIL,claude-prelabel,"wrong window, garbled"
+1078,ar-044,ar,arab,correctness,FAIL,claude-prelabel,routes to account security
+1127,ar-048,ar,arab,correctness,FAIL,claude-prelabel,says yes without packaging
+1176,ar-052,ar,arab,correctness,FAIL,claude-prelabel,no 7 days
+1188,ar-053,ar,arab,correctness,FAIL,claude-prelabel,says one day
+1200,ar-054,ar,arab,correctness,PASS,claude-prelabel,human agent will contact
+1237,ar-057,ar,arab,correctness,PASS,claude-prelabel,transfers to a human
+25,fr-001,fr,latn,correctness,PASS,claude-prelabel,"2-5, within"
+68,fr-004,fr,latn,correctness,PASS,claude-prelabel,within 4-8
+155,fr-004,fr,latn,correctness,FAIL,claude-prelabel,says it will exceed the window
+86,fr-005,fr,latn,correctness,FAIL,claude-prelabel,says the 8-day maximum is exceeded
+258,fr-007,fr,latn,correctness,FAIL,claude-prelabel,incoherent
+346,fr-010,fr,latn,correctness,FAIL,claude-prelabel,incoherent
+173,fr-010,fr,latn,correctness,PASS,claude-prelabel,"4-8, may still be en route"
+211,fr-012,fr,latn,correctness,PASS,claude-prelabel,4-8
+448,fr-013,fr,latn,correctness,PASS,claude-prelabel,"not late, 2-5"
+306,fr-017,fr,latn,correctness,FAIL,claude-prelabel,invents reshipping/refund remedy
+351,fr-019,fr,latn,correctness,PASS,claude-prelabel,"2-5, 6 is above"
+644,fr-019,fr,latn,correctness,FAIL,claude-prelabel,says not much
+370,fr-020,fr,latn,correctness,PASS,claude-prelabel,within 4-8
+388,fr-021,fr,latn,correctness,PASS,claude-prelabel,Mes commandes
+855,fr-026,fr,latn,correctness,PASS,claude-prelabel,card + COD
+478,fr-026,fr,latn,correctness,PASS,claude-prelabel,card + COD
+515,fr-028,fr,latn,correctness,PASS,claude-prelabel,both
+536,fr-029,fr,latn,correctness,PASS,claude-prelabel,COD
+892,fr-029,fr,latn,correctness,PASS,claude-prelabel,cash
+904,fr-030,fr,latn,correctness,PASS,claude-prelabel,cash + 5 TND
+916,fr-031,fr,latn,correctness,PASS,claude-prelabel,5 TND
+928,fr-032,fr,latn,correctness,FAIL,claude-prelabel,invents bank-transfer condition
+633,fr-034,fr,latn,correctness,PASS,claude-prelabel,5 TND
+653,fr-035,fr,latn,correctness,PASS,claude-prelabel,5 TND
+964,fr-035,fr,latn,correctness,PASS,claude-prelabel,5 TND
+691,fr-037,fr,latn,correctness,PASS,claude-prelabel,all facts
+988,fr-037,fr,latn,correctness,FAIL,claude-prelabel,incoherent
+732,fr-039,fr,latn,correctness,PASS,claude-prelabel,all facts
+750,fr-040,fr,latn,correctness,PASS,claude-prelabel,all facts
+784,fr-042,fr,latn,correctness,PASS,claude-prelabel,all facts
+802,fr-043,fr,latn,correctness,PASS,claude-prelabel,all facts
+821,fr-044,fr,latn,correctness,PASS,claude-prelabel,all facts
+1087,fr-045,fr,latn,correctness,FAIL,claude-prelabel,no conditions or fees
+1100,fr-046,fr,latn,correctness,PASS,claude-prelabel,"14 days, too late"
+1112,fr-047,fr,latn,correctness,FAIL,claude-prelabel,says a used item can be returned
+1285,fr-047,fr,latn,correctness,PASS,claude-prelabel,used item ineligible
+1173,fr-052,fr,latn,correctness,PASS,claude-prelabel,7 days
+1197,fr-054,fr,latn,correctness,PASS,claude-prelabel,transfers to a human
+1246,fr-058,fr,latn,correctness,FAIL,claude-prelabel,invents a no-change policy; should hand off
+316,aeb-ar-017,aeb,arab,correctness,FAIL,curator-decision,"curator (revised): must state explicitly whether the order is within the window or late (rule A, strict)"
+310,ar-017,ar,arab,correctness,FAIL,curator-decision,"curator (revised): must state explicitly whether the order is within the window or late (rule A, strict)"
+265,aeb-la-014,aeb,latn,correctness,FAIL,curator-decision,"curator: window given only generically, question not answered"
+1279,aeb-ar-046,aeb,arab,correctness,FAIL,curator-decision,curator: invented 'unless defective' exception gives false hope of a return (rule B)
+1276,ar-046,ar,arab,correctness,FAIL,curator-decision,curator: invented 'unless defective' exception gives false hope of a return (rule B)
+1031,aeb-ar-040,aeb,arab,correctness,PASS,curator-decision,curator: facts needed to act are present; missing delay/card is secondary (rule C)
+1115,ar-047,ar,arab,correctness,FAIL,curator-decision,"curator: refusal must give the actual reason (item was used), not the 14-day window (rule D)"
+51,fr-003,fr,latn,correctness,FAIL,curator-decision,curator: never tells the customer they are within the window; wording suggests a delay
+913,aeb-la-030,aeb,latn,correctness,FAIL,curator-decision,"curator (native): not Tunisian, incomprehensible; no usable answer"
+1145,aeb-la-049,aeb,latn,correctness,FAIL,curator-decision,curator (native): incomprehensible beyond '8 TND'
