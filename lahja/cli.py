@@ -153,6 +153,10 @@ def label(
     dataset: str = typer.Option(..., help="Dataset name."),
     rubric: str = typer.Option("correctness", help="Rubric you are labeling against: read it first."),
     per_language: int = typer.Option(10, help="How many answers per language to label this session."),
+    view_file: Path | None = typer.Option(
+        Path("labeling_current.md"),
+        help="Write each item here; open its Markdown preview to read Arabic properly. Empty string = terminal only.",
+    ),
 ) -> None:
     """Label answers yourself, blind (no model name, no judge verdict). Ground truth for kappa."""
     with _db() as (settings, session):
@@ -165,7 +169,19 @@ def label(
         if not items:
             _fail("nothing to label: run the models first, or everything is already labeled")
         typer.echo(f"{len(items)} answers to label against lahja/rubrics/{rubric}.md")
-        summary = label_interactively(session, items, rubric, ask=lambda q: typer.prompt(q), show=typer.echo)
+        view = None
+        if view_file and str(view_file) not in ("", "."):
+            view = lambda text: view_file.write_text(text, encoding="utf-8")  # noqa: E731
+            view(f"# Labeling {rubric}\n\nThe first item appears here as soon as you continue in the terminal.")
+            typer.secho(
+                f"Open {view_file} in VS Code, press Ctrl+Shift+V (Markdown preview) and keep it beside the terminal.\n"
+                "Read each item there (Arabic displays correctly), answer here.",
+                fg=typer.colors.CYAN,
+            )
+            typer.prompt("Press Enter when the preview is open", default="", show_default=False)
+        summary = label_interactively(
+            session, items, rubric, ask=lambda q: typer.prompt(q), show=typer.echo, view=view
+        )
         typer.echo(f"saved {summary.labeled} labels ({summary.skipped} skipped)")
 
 

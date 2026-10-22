@@ -5,3 +5,4 @@ __pycache__/
 .env
 *.db
 reports/
+labeling_current.md

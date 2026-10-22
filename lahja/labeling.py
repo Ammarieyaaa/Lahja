@@ -3,6 +3,7 @@ the judge's verdict or which model wrote the answer. Your labels are the ground 
 
 from __future__ import annotations
 
+import html
 import random
 from collections import defaultdict
 from collections.abc import Callable
@@ -55,6 +56,29 @@ def format_item(response: Response, rubric: str, position: str) -> str:
     )
 
 
+def format_item_markdown(response: Response, rubric: str, position: str) -> str:
+    """The same item as Markdown/HTML for an editor preview.
+
+    Terminals can't lay out right-to-left text, so Arabic comes out jumbled there; a Markdown
+    preview applies the Unicode bidi algorithm. dir="auto" picks the direction per block.
+    """
+    case = response.case
+
+    def block(title: str, text: str) -> str:
+        body = html.escape(text).replace("\n", "<br>")
+        return f'### {title}\n\n<div dir="auto" style="font-size: 1.25em; line-height: 1.7">{body}</div>\n'
+
+    return "\n".join(
+        [
+            f"# [{position}] {rubric}",
+            f"`{case.language}/{case.script}` · case `{case.external_id}` · type **p** / **f** / **s** / **q** in the terminal\n",
+            block("Question", case.input),
+            block("Reference (key facts)", case.reference),
+            block("Answer", response.output),
+        ]
+    )
+
+
 def label_interactively(
     session: Session,
     responses: list[Response],
@@ -62,10 +86,18 @@ def label_interactively(
     *,
     ask: Callable[[str], str],
     show: Callable[[str], None],
+    view: Callable[[str], None] | None = None,
 ) -> LabelSummary:
+    """`view`, if given, receives each item as Markdown (for a readable RTL preview); the
+    terminal then only shows a one-line header."""
     summary = LabelSummary()
     for i, response in enumerate(responses, start=1):
-        show(format_item(response, rubric, f"{i}/{len(responses)}"))
+        position = f"{i}/{len(responses)}"
+        if view is None:
+            show(format_item(response, rubric, position))
+        else:
+            view(format_item_markdown(response, rubric, position))
+            show(f"[{position}] {response.case.language}/{response.case.script}  {response.case.external_id}")
         while True:
             choice = ask("[p]ass  [f]ail  [s]kip  [q]uit").strip().lower()[:1]
             if choice in ("p", "f", "s", "q"):

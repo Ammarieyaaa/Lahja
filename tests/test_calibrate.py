@@ -74,6 +74,11 @@ def test_labeling_is_blind_and_feeds_calibration(session, dataset):
     assert (summary.labeled, summary.skipped) == (3, 1)
     assert "m1" not in "".join(shown) and "m2" not in "".join(shown)  # model identity never shown
 
+    viewed: list[str] = []
+    rest = pick_for_labeling(session, dataset, "correctness", per_language=10, seed=0)[:1]
+    label_interactively(session, rest, "correctness", ask=lambda q: "s", show=shown.append, view=viewed.append)
+    assert 'dir="auto"' in viewed[0] and "m1" not in viewed[0] and "m2" not in viewed[0]
+
     for response in session.query(Response):
         session.add(Judgment(response_id=response.id, rubric="correctness", judge_model="j", passed=True))
     session.commit()
