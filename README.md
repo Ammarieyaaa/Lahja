@@ -130,6 +130,10 @@ pytest -m integration     # real calls: Ollama end-to-end; Groq tests skip witho
 
 - [x] Pipeline: dataset → run → judge → label → calibrate → compare → report
 - [x] Model roles confirmed against this Groq account: current `openai/gpt-oss-120b`, candidate Ollama `llama3.2:3b`, judge `qwen/qwen3.8-27b`
-- [ ] Curated dataset, including Tunisian Derja cases in Arabic script and Arabizi (Tunisian policy)
-- [ ] `language_fidelity` rubric
-- [ ] Labels: at least 20 per language per rubric
+- [x] Curated dataset `support-v1`: 236 cases, 59 scenarios × French, MSA, Tunisian Derja (Arabic script) and Tunisian Derja (Arabizi)
+- [x] `language_fidelity` rubric
+- [x] Candidate run (708 answers)
+- [ ] Current run: finishing under Groq's free-tier daily token cap
+- [ ] Judging, first trial per case, both rubrics
+- [ ] Labels: at least 20 per language (and per Derja script) per rubric
+- [ ] Results: calibration + verdict per language, written up here
