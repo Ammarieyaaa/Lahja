@@ -63,6 +63,19 @@ def test_judge_run_grades_trial_first_and_can_stop_at_a_trial(session, dataset):
     assert trials == ["1", "1", "1", "2", "2", "2"]  # then trial 1 of every case, then trial 2
 
 
+def test_judge_run_labeled_only_grades_just_the_labeled_answers(session, dataset):
+    from lahja.db import HumanLabel
+
+    summary = run_model(session, dataset, FakeClient(), trials=2, temperature=0.7)
+    run = session.get(Run, summary.run_id)
+    target = run.responses[3]
+    session.add(HumanLabel(response_id=target.id, rubric="correctness", passed=True))
+    session.commit()
+    judge = LLMJudge(FakeClient("judge", lambda m, n: '{"reason": "r", "verdict": "PASS"}'), load_rubric("correctness"))
+    result = judge_run(session, run, judge, labeled_only=True)
+    assert result.created == 1
+
+
 def test_judge_run_caches_per_rubric_and_skips_failures(session, dataset):
     summary = run_model(session, dataset, FakeClient(), trials=2, temperature=0.7)
     run = session.get(Run, summary.run_id)

@@ -134,6 +134,7 @@ def judge(
     role: Target = typer.Option(..., help="Whose answers to grade: current or candidate."),
     rubric: str = typer.Option("correctness", help="Rubric name (a file in lahja/rubrics/)."),
     trials: int | None = typer.Option(None, help="Only grade trials < N (e.g. 1 = first trial of every case)."),
+    labeled_only: bool = typer.Option(False, help="Only grade answers you labeled for this rubric (calibration first)."),
 ) -> None:
     """Grade every answer of a run with the judge model, trial 0 of every case first. Re-running resumes."""
     with _db() as (settings, session):
@@ -144,7 +145,9 @@ def judge(
             _fail(str(e))
         run = _require_run(session, ds, settings, role)
         typer.echo(f"judging {run.model} with {grader.name} / {rubric}")
-        summary = judge_run(session, run, grader, max_trials=trials, progress=typer.echo)
+        summary = judge_run(
+            session, run, grader, max_trials=trials, labeled_only=labeled_only, progress=typer.echo
+        )
         typer.echo(f"done: {summary.created} new, {summary.cached} cached, {summary.failed} failed")
 
 

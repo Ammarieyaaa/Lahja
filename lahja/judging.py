@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from lahja.db import Judgment, Response, Run
+from lahja.db import HumanLabel, Judgment, Response, Run
 from lahja.judge import Judge, JudgeError
 
 
@@ -25,12 +25,15 @@ def judge_run(
     judge: Judge,
     *,
     max_trials: int | None = None,
+    labeled_only: bool = False,
     progress: Callable[[str], None] = lambda _: None,
 ) -> JudgeSummary:
     """Grade the run's responses, trial 0 of every case first, then trial 1, and so on.
 
     Trial-first order means a partial pass (e.g. stopped by a daily token quota) still covers
     every case once, so `compare` can run on it. `max_trials` limits grading to trials < N.
+    `labeled_only` grades just the responses you labeled for this rubric: the cheapest way to
+    get calibration (kappa) before the full comparison.
     """
     graded = set(
         session.scalars(
@@ -43,6 +46,9 @@ def judge_run(
     responses = sorted(run.responses, key=lambda r: (r.trial, r.case_id))
     if max_trials is not None:
         responses = [r for r in responses if r.trial < max_trials]
+    if labeled_only:
+        labeled = set(session.scalars(select(HumanLabel.response_id).where(HumanLabel.rubric == judge.rubric)))
+        responses = [r for r in responses if r.id in labeled]
     for response in responses:
         if response.id in graded:
             summary.cached += 1
