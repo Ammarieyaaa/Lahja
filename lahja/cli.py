@@ -133,8 +133,9 @@ def judge(
     dataset: str = typer.Option(..., help="Dataset name."),
     role: Target = typer.Option(..., help="Whose answers to grade: current or candidate."),
     rubric: str = typer.Option("correctness", help="Rubric name (a file in lahja/rubrics/)."),
+    trials: int | None = typer.Option(None, help="Only grade trials < N (e.g. 1 = first trial of every case)."),
 ) -> None:
-    """Grade every answer of a run with the judge model. Cached: re-running only grades new answers."""
+    """Grade every answer of a run with the judge model, trial 0 of every case first. Re-running resumes."""
     with _db() as (settings, session):
         try:
             ds = get_dataset(session, dataset)
@@ -143,7 +144,7 @@ def judge(
             _fail(str(e))
         run = _require_run(session, ds, settings, role)
         typer.echo(f"judging {run.model} with {grader.name} / {rubric}")
-        summary = judge_run(session, run, grader, progress=typer.echo)
+        summary = judge_run(session, run, grader, max_trials=trials, progress=typer.echo)
         typer.echo(f"done: {summary.created} new, {summary.cached} cached, {summary.failed} failed")
 
 

@@ -20,8 +20,18 @@ class JudgeSummary:
 
 
 def judge_run(
-    session: Session, run: Run, judge: Judge, *, progress: Callable[[str], None] = lambda _: None
+    session: Session,
+    run: Run,
+    judge: Judge,
+    *,
+    max_trials: int | None = None,
+    progress: Callable[[str], None] = lambda _: None,
 ) -> JudgeSummary:
+    """Grade the run's responses, trial 0 of every case first, then trial 1, and so on.
+
+    Trial-first order means a partial pass (e.g. stopped by a daily token quota) still covers
+    every case once, so `compare` can run on it. `max_trials` limits grading to trials < N.
+    """
     graded = set(
         session.scalars(
             select(Judgment.response_id)
@@ -30,7 +40,10 @@ def judge_run(
         )
     )
     summary = JudgeSummary()
-    for response in run.responses:
+    responses = sorted(run.responses, key=lambda r: (r.trial, r.case_id))
+    if max_trials is not None:
+        responses = [r for r in responses if r.trial < max_trials]
+    for response in responses:
         if response.id in graded:
             summary.cached += 1
             continue

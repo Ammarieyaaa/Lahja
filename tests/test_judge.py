@@ -50,6 +50,19 @@ def test_judge_retries_once_on_unparseable_output():
     assert judge.grade(question="q", reference="r", answer="a").passed is False
 
 
+def test_judge_run_grades_trial_first_and_can_stop_at_a_trial(session, dataset):
+    summary = run_model(session, dataset, FakeClient(), trials=3, temperature=0.7)
+    run = session.get(Run, summary.run_id)
+    seen: list[str] = []
+    judge = LLMJudge(FakeClient("judge", lambda m, n: '{"reason": "r", "verdict": "PASS"}'), load_rubric("correctness"))
+    first = judge_run(session, run, judge, max_trials=1, progress=seen.append)
+    assert first.created == 3 and all(" t0:" in line for line in seen)  # every case once, trial 0 only
+    seen.clear()
+    judge_run(session, run, judge, progress=seen.append)
+    trials = [line.split(" t")[1][0] for line in seen]
+    assert trials == ["1", "1", "1", "2", "2", "2"]  # then trial 1 of every case, then trial 2
+
+
 def test_judge_run_caches_per_rubric_and_skips_failures(session, dataset):
     summary = run_model(session, dataset, FakeClient(), trials=2, temperature=0.7)
     run = session.get(Run, summary.run_id)
